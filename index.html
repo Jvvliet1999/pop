@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1f2a44">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="POP">
   <title>Persoonlijk ontwikkelplan</title>
   <link rel="manifest" href="manifest.webmanifest">
@@ -19,6 +20,15 @@
       --muted: #7a7f8c;
       --line: #e6e3db;
       --accent: #1f2a44;
+      --on-accent: #ffffff;
+      --good: #2f8a4a;
+      --good-soft: #e3f2e6;
+      --bad: #b8483a;
+      --bad-soft: #f8e4e1;
+      --sun: #d48a1c;
+      --sun-soft: #fbf0dc;
+      --moon: #4b5fa8;
+      --moon-soft: #e6e9f6;
     }
     @media (prefers-color-scheme: dark) {
       :root {
@@ -28,82 +38,576 @@
         --muted: #8d93a1;
         --line: #2a303b;
         --accent: #c9d3ea;
+        --on-accent: #12151c;
+        --good: #6cc184;
+        --good-soft: #1e3324;
+        --bad: #e2836f;
+        --bad-soft: #3a2420;
+        --sun: #e8aa4a;
+        --sun-soft: #3a2f1c;
+        --moon: #97a8e6;
+        --moon-soft: #232a42;
       }
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { min-height: 100%; }
     body {
       background: var(--bg);
       color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       -webkit-font-smoothing: antialiased;
-      display: flex;
-      flex-direction: column;
-    }
-    header {
-      padding: calc(env(safe-area-inset-top) + 24px) 20px 16px;
-    }
-    .datum {
-      font-size: 13px;
-      color: var(--muted);
-      text-transform: capitalize;
-      letter-spacing: .02em;
-    }
-    h1 {
-      font-size: 30px;
-      font-weight: 700;
-      letter-spacing: -.02em;
-      margin-top: 4px;
-    }
-    main {
-      flex: 1;
-      padding: 0 20px calc(env(safe-area-inset-bottom) + 24px);
-      max-width: 640px;
-      width: 100%;
-      margin: 0 auto;
-    }
-    .leeg {
-      margin-top: 24px;
-      border: 1.5px dashed var(--line);
-      border-radius: 16px;
-      padding: 48px 24px;
-      text-align: center;
-      color: var(--muted);
-      background: var(--surface);
-    }
-    .leeg strong {
-      display: block;
-      color: var(--text);
       font-size: 16px;
-      margin-bottom: 6px;
     }
-    .leeg p { font-size: 14px; line-height: 1.5; }
+    button, input { font: inherit; color: inherit; }
+    button { cursor: pointer; border: none; background: none; }
+
+    header {
+      padding: calc(env(safe-area-inset-top) + 20px) 20px 8px;
+      max-width: 640px; margin: 0 auto;
+      display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
+    }
+    .datum { font-size: 13px; color: var(--muted); letter-spacing: .02em; }
+    .datum::first-letter { text-transform: uppercase; }
+    h1 { font-size: 28px; font-weight: 700; letter-spacing: -.02em; margin-top: 2px; }
+    main {
+      padding: 8px 20px calc(env(safe-area-inset-bottom) + 96px);
+      max-width: 640px; margin: 0 auto;
+    }
+    section[data-view] { display: none; }
+    section[data-view].actief { display: block; }
+
+    .kaart {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+      margin-top: 12px;
+    }
+    .kaart-kop { display: flex; align-items: center; gap: 10px; }
+    .kaart-kop h2 { font-size: 16px; font-weight: 650; flex: 1; }
+    .label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 24px 0 4px; }
+    .sub { font-size: 13px; color: var(--muted); }
+    .icoon {
+      width: 34px; height: 34px; border-radius: 10px; flex: none;
+      display: grid; place-items: center; font-size: 17px;
+    }
+    .i-bad { background: var(--bad-soft); color: var(--bad); }
+    .i-good { background: var(--good-soft); color: var(--good); }
+    .i-sun { background: var(--sun-soft); color: var(--sun); }
+    .i-moon { background: var(--moon-soft); color: var(--moon); }
+
+    .ov-kaart { display: block; width: 100%; text-align: left; }
+    .ov-getal { font-size: 26px; font-weight: 700; letter-spacing: -.02em; margin-top: 12px; }
+    .ov-getal small { font-size: 14px; font-weight: 500; color: var(--muted); margin-left: 4px; }
+    .balk { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; margin-top: 8px; }
+    .balk > i { display: block; height: 100%; border-radius: 3px; background: var(--good); transition: width .3s; }
+    .ov-rij { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+    .ov-rij .sub { display: flex; justify-content: space-between; }
+    .pijl { color: var(--muted); font-size: 18px; }
+
+    .leeg {
+      margin-top: 12px; border: 1.5px dashed var(--line); border-radius: 16px;
+      padding: 32px 20px; text-align: center; color: var(--muted); font-size: 14px; line-height: 1.5;
+    }
+    .leeg strong { display: block; color: var(--text); font-size: 15px; margin-bottom: 4px; }
+
+    .knop {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: 15px;
+      background: var(--accent); color: var(--on-accent);
+    }
+    .knop.breed { width: 100%; margin-top: 16px; padding: 14px; }
+    .knop.zacht { background: var(--surface); color: var(--text); border: 1px solid var(--line); }
+    .knop.klein { padding: 7px 12px; font-size: 13px; border-radius: 10px; }
+    .knop.rood { background: var(--bad-soft); color: var(--bad); }
+    .tekstknop { color: var(--muted); font-size: 14px; padding: 6px 4px; }
+
+    /* Slechte gewoontes */
+    .vrij { display: flex; align-items: baseline; gap: 6px; margin-top: 14px; }
+    .vrij b { font-size: 34px; letter-spacing: -.03em; }
+    .vrij span { color: var(--muted); font-size: 14px; }
+    .stats { display: flex; gap: 16px; margin-top: 4px; }
+    .acties { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+
+    /* Goede gewoontes */
+    .gw-rij { display: flex; align-items: center; gap: 12px; }
+    .vink {
+      width: 44px; height: 44px; border-radius: 50%; flex: none;
+      border: 2px solid var(--line); display: grid; place-items: center;
+      font-size: 20px; color: transparent; transition: all .15s;
+    }
+    .vink.aan { background: var(--good); border-color: var(--good); color: var(--on-accent); }
+    .gw-info { flex: 1; min-width: 0; }
+    .gw-naam { font-weight: 600; overflow-wrap: anywhere; }
+    .week { display: flex; gap: 5px; margin-top: 12px; }
+    .dag { flex: 1; text-align: center; font-size: 11px; color: var(--muted); }
+    .dag i { display: block; height: 8px; border-radius: 4px; background: var(--line); margin-top: 4px; }
+    .dag.ja i { background: var(--good); }
+    .dag.vandaag { color: var(--text); font-weight: 700; }
+
+    /* Routine */
+    .tabs { display: flex; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px; margin-top: 12px; }
+    .tabs button { flex: 1; padding: 9px; border-radius: 9px; font-weight: 600; font-size: 15px; color: var(--muted); }
+    .tabs button.aan { background: var(--accent); color: var(--on-accent); }
+    .stap {
+      display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+      padding: 13px 0; border-bottom: 1px solid var(--line);
+    }
+    .stap:last-child { border-bottom: none; }
+    .stap .box {
+      width: 26px; height: 26px; border-radius: 8px; flex: none;
+      border: 2px solid var(--line); display: grid; place-items: center; font-size: 15px; color: transparent;
+    }
+    .stap.aan .box { background: var(--good); border-color: var(--good); color: var(--on-accent); }
+    .stap.aan .tekst { color: var(--muted); text-decoration: line-through; }
+    .stap .tekst { flex: 1; overflow-wrap: anywhere; }
+    .stap .weg { color: var(--bad); font-size: 14px; padding: 4px 8px; }
+    .toevoegen { display: flex; gap: 8px; margin-top: 12px; }
+    .toevoegen input {
+      flex: 1; min-width: 0; padding: 11px 12px; border-radius: 12px;
+      border: 1px solid var(--line); background: var(--bg);
+    }
+    .compleet { color: var(--good); font-weight: 600; font-size: 14px; margin-top: 10px; text-align: center; }
+
+    /* Navigatie */
+    nav {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+      background: var(--surface); border-top: 1px solid var(--line);
+      padding: 6px 8px calc(env(safe-area-inset-bottom) + 6px);
+      display: flex; justify-content: center;
+    }
+    nav .wrap { display: flex; width: 100%; max-width: 640px; }
+    nav button {
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+      padding: 6px 0; font-size: 11px; color: var(--muted); font-weight: 600;
+    }
+    nav button .ni { font-size: 20px; line-height: 1.2; filter: grayscale(1); opacity: .6; }
+    nav button.aan { color: var(--text); }
+    nav button.aan .ni { filter: none; opacity: 1; }
+
+    /* Invoerblad */
+    .scherm { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 20; display: none; align-items: flex-end; justify-content: center; }
+    .scherm.open { display: flex; }
+    .blad {
+      background: var(--surface); width: 100%; max-width: 640px;
+      border-radius: 20px 20px 0 0; padding: 20px 20px calc(env(safe-area-inset-bottom) + 20px);
+    }
+    .blad h3 { font-size: 18px; margin-bottom: 14px; }
+    .blad label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
+    .blad input {
+      width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg);
+    }
+    .blad .rij { display: flex; gap: 8px; margin-top: 18px; }
+    .blad .rij .knop { flex: 1; padding: 13px; }
   </style>
 </head>
 <body>
   <header>
-    <div class="datum" id="datum"></div>
-    <h1>Overzicht</h1>
+    <div>
+      <div class="datum" id="datum"></div>
+      <h1 id="titel">Overzicht</h1>
+    </div>
   </header>
 
-  <main id="overzicht">
-    <div class="leeg">
-      <strong>Nog niets hier</strong>
-      <p>Dit overzicht vult zich zodra we onderdelen toevoegen.</p>
-    </div>
+  <main>
+    <!-- OVERZICHT -->
+    <section data-view="overzicht" class="actief">
+      <button class="kaart ov-kaart" data-ga="afleren">
+        <div class="kaart-kop"><div class="icoon i-bad">✕</div><h2>Slechte gewoontes afleren</h2><span class="pijl">›</span></div>
+        <div id="ov-afleren"></div>
+      </button>
+      <button class="kaart ov-kaart" data-ga="aanleren">
+        <div class="kaart-kop"><div class="icoon i-good">＋</div><h2>Goede gewoontes aanleren</h2><span class="pijl">›</span></div>
+        <div id="ov-aanleren"></div>
+      </button>
+      <button class="kaart ov-kaart" data-ga="routine">
+        <div class="kaart-kop"><div class="icoon i-sun">☀</div><h2>Ochtend- &amp; avondroutine</h2><span class="pijl">›</span></div>
+        <div id="ov-routine"></div>
+      </button>
+
+      <div class="label">Back-up</div>
+      <div class="kaart">
+        <p class="sub">Je gegevens staan alleen op dit apparaat. Maak af en toe een back-up, zodat je niets kwijtraakt bij een nieuwe telefoon.</p>
+        <div class="acties">
+          <button class="knop zacht klein" id="exporteer">Back-up opslaan</button>
+          <button class="knop zacht klein" id="importeer">Back-up terugzetten</button>
+          <input type="file" id="bestand" accept="application/json,.json" hidden>
+        </div>
+      </div>
+    </section>
+
+    <!-- AFLEREN -->
+    <section data-view="afleren">
+      <p class="sub" style="margin-top:4px">Houd bij hoe lang je al vrij bent van een slechte gewoonte.</p>
+      <div id="lijst-afleren"></div>
+      <button class="knop breed" data-nieuw="afleren">＋ Slechte gewoonte toevoegen</button>
+    </section>
+
+    <!-- AANLEREN -->
+    <section data-view="aanleren">
+      <p class="sub" style="margin-top:4px">Vink elke dag af wat je gedaan hebt en bouw een reeks op.</p>
+      <div id="lijst-aanleren"></div>
+      <button class="knop breed" data-nieuw="aanleren">＋ Goede gewoonte toevoegen</button>
+    </section>
+
+    <!-- ROUTINE -->
+    <section data-view="routine">
+      <div class="tabs">
+        <button data-moment="ochtend">☀ Ochtend</button>
+        <button data-moment="avond">☾ Avond</button>
+      </div>
+      <div class="kaart">
+        <div class="kaart-kop">
+          <h2 id="routine-kop"></h2>
+          <span class="sub" id="routine-telling"></span>
+          <button class="tekstknop" id="routine-bewerk">Bewerken</button>
+        </div>
+        <div class="balk"><i id="routine-balk" style="width:0"></i></div>
+        <div id="routine-lijst" style="margin-top:6px"></div>
+        <div id="routine-compleet"></div>
+        <form class="toevoegen" id="routine-form">
+          <input id="routine-input" placeholder="Nieuwe stap toevoegen" autocomplete="off" enterkeyhint="done">
+          <button class="knop" type="submit">＋</button>
+        </form>
+      </div>
+      <p class="sub" id="routine-reeks" style="text-align:center;margin-top:14px"></p>
+    </section>
   </main>
 
-  <script>
-    // Datum bovenaan
-    document.getElementById('datum').textContent =
-      new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
+  <nav>
+    <div class="wrap">
+      <button data-ga="overzicht" class="aan"><span class="ni">🏠</span>Overzicht</button>
+      <button data-ga="afleren"><span class="ni">🚫</span>Afleren</button>
+      <button data-ga="aanleren"><span class="ni">🌱</span>Aanleren</button>
+      <button data-ga="routine"><span class="ni">☀️</span>Routine</button>
+    </div>
+  </nav>
 
-    // Offline-ondersteuning (werkt via https of localhost)
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
-      });
+  <!-- Invoerblad voor toevoegen/bewerken -->
+  <div class="scherm" id="scherm">
+    <form class="blad" id="blad">
+      <h3 id="blad-titel"></h3>
+      <label for="blad-naam">Naam</label>
+      <input id="blad-naam" required autocomplete="off" maxlength="60">
+      <div id="blad-start-wrap">
+        <label for="blad-start">Vrij sinds</label>
+        <input id="blad-start" type="date">
+      </div>
+      <div class="rij">
+        <button type="button" class="knop rood" id="blad-verwijder">Verwijderen</button>
+        <button type="button" class="knop zacht" id="blad-annuleer">Annuleren</button>
+        <button type="submit" class="knop">Opslaan</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+  (() => {
+    // ---------- Opslag (alleen op dit apparaat) ----------
+    const SLEUTEL = 'pop-data-v1';
+    const leegData = () => ({
+      afleren: [],                         // {id, naam, start, terugvallen: [datum]}
+      aanleren: [],                        // {id, naam, gedaan: {datum: true}}
+      routine: { ochtend: [], avond: [] }, // {id, naam}
+      routineGedaan: {}                    // {datum: {stapId: true}}
+    });
+    let data = leegData();
+    try {
+      const opgeslagen = JSON.parse(localStorage.getItem(SLEUTEL));
+      if (opgeslagen) data = Object.assign(leegData(), opgeslagen);
+    } catch (e) {}
+    const bewaar = () => { try { localStorage.setItem(SLEUTEL, JSON.stringify(data)); } catch (e) {} };
+    const nieuwId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+    // ---------- Datums ----------
+    const sleutel = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const vandaag = () => sleutel(new Date());
+    const naarDatum = s => { const [j, m, d] = s.split('-').map(Number); return new Date(j, m - 1, d); };
+    const dagenTussen = (a, b) => Math.round((Date.UTC(...b.split('-').map((n, i) => i === 1 ? n - 1 : +n)) - Date.UTC(...a.split('-').map((n, i) => i === 1 ? n - 1 : +n))) / 864e5);
+    const plusDagen = (s, n) => { const d = naarDatum(s); d.setDate(d.getDate() + n); return sleutel(d); };
+    const dagNaam = s => naarDatum(s).toLocaleDateString('nl-NL', { weekday: 'short' }).slice(0, 2);
+    const dagen = n => n === 1 ? 'dag' : 'dagen';
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    // ---------- Berekeningen ----------
+    function vrijInfo(g) {
+      const t = vandaag();
+      const momenten = [g.start, ...[...g.terugvallen].sort()];
+      const laatste = momenten[momenten.length - 1];
+      let record = 0;
+      for (let i = 1; i < momenten.length; i++) record = Math.max(record, dagenTussen(momenten[i - 1], momenten[i]));
+      const nu = Math.max(0, dagenTussen(laatste, t));
+      return { nu, record: Math.max(record, nu), terugvallen: g.terugvallen.length };
     }
+    function reeks(isGedaan) {
+      let d = vandaag(), n = 0;
+      if (!isGedaan(d)) d = plusDagen(d, -1);   // vandaag nog niet gedaan: reeks van gisteren telt nog
+      while (isGedaan(d)) { n++; d = plusDagen(d, -1); }
+      return n;
+    }
+    const routineCompleet = (moment, d) => {
+      const stappen = data.routine[moment];
+      const gedaan = data.routineGedaan[d] || {};
+      return stappen.length > 0 && stappen.every(s => gedaan[s.id]);
+    };
+    const routineTelling = (moment, d) => {
+      const gedaan = data.routineGedaan[d] || {};
+      const stappen = data.routine[moment];
+      return { klaar: stappen.filter(s => gedaan[s.id]).length, totaal: stappen.length };
+    };
+
+    // ---------- Navigatie ----------
+    const titels = { overzicht: 'Overzicht', afleren: 'Afleren', aanleren: 'Aanleren', routine: 'Routine' };
+    let huidig = 'overzicht';
+    function ga(view) {
+      huidig = view;
+      document.querySelectorAll('section[data-view]').forEach(s => s.classList.toggle('actief', s.dataset.view === view));
+      document.querySelectorAll('nav button').forEach(b => b.classList.toggle('aan', b.dataset.ga === view));
+      document.getElementById('titel').textContent = titels[view];
+      try { sessionStorage.setItem('pop-view', view); } catch (e) {}
+      window.scrollTo(0, 0);
+      teken();
+    }
+    document.addEventListener('click', e => {
+      const b = e.target.closest('[data-ga]');
+      if (b) ga(b.dataset.ga);
+    });
+
+    // ---------- Overzicht ----------
+    function tekenOverzicht() {
+      const t = vandaag();
+      // Afleren
+      const af = document.getElementById('ov-afleren');
+      if (!data.afleren.length) af.innerHTML = '<p class="sub" style="margin-top:10px">Nog niets toegevoegd</p>';
+      else {
+        const infos = data.afleren.map(g => ({ naam: g.naam, ...vrijInfo(g) }));
+        af.innerHTML = infos.map(i => `<div class="ov-rij" style="grid-template-columns:1fr auto;margin-top:10px">
+          <span>${esc(i.naam)}</span><b>${i.nu} ${dagen(i.nu)} vrij</b></div>`).join('');
+      }
+      // Aanleren
+      const aan = document.getElementById('ov-aanleren');
+      if (!data.aanleren.length) aan.innerHTML = '<p class="sub" style="margin-top:10px">Nog niets toegevoegd</p>';
+      else {
+        const klaar = data.aanleren.filter(g => g.gedaan[t]).length, tot = data.aanleren.length;
+        aan.innerHTML = `<div class="ov-getal">${klaar}/${tot}<small>vandaag gedaan</small></div>
+          <div class="balk"><i style="width:${Math.round(klaar / tot * 100)}%"></i></div>`;
+      }
+      // Routine
+      const ro = document.getElementById('ov-routine');
+      const o = routineTelling('ochtend', t), a = routineTelling('avond', t);
+      if (!o.totaal && !a.totaal) ro.innerHTML = '<p class="sub" style="margin-top:10px">Nog niets toegevoegd</p>';
+      else ro.innerHTML = `<div class="ov-rij">${[['☀ Ochtend', o], ['☾ Avond', a]].map(([n, c]) => `
+          <div><div class="sub"><span>${n}</span><span>${c.klaar}/${c.totaal}</span></div>
+          <div class="balk"><i style="width:${c.totaal ? Math.round(c.klaar / c.totaal * 100) : 0}%"></i></div></div>`).join('')}</div>`;
+    }
+
+    // ---------- Afleren ----------
+    function tekenAfleren() {
+      const el = document.getElementById('lijst-afleren');
+      if (!data.afleren.length) {
+        el.innerHTML = '<div class="leeg"><strong>Nog geen slechte gewoontes</strong>Voeg een gewoonte toe die je wilt afleren, bijvoorbeeld snoepen of laat naar bed gaan.</div>';
+        return;
+      }
+      el.innerHTML = data.afleren.map(g => {
+        const i = vrijInfo(g);
+        return `<div class="kaart">
+          <div class="kaart-kop"><div class="icoon i-bad">✕</div><h2>${esc(g.naam)}</h2>
+            <button class="tekstknop" data-bewerk="afleren" data-id="${g.id}">Bewerken</button></div>
+          <div class="vrij"><b>${i.nu}</b><span>${dagen(i.nu)} vrij</span></div>
+          <div class="stats sub"><span>Record: ${i.record} ${dagen(i.record)}</span><span>Teruggevallen: ${i.terugvallen}×</span></div>
+          <div class="acties">
+            <button class="knop rood klein" data-terugval="${g.id}">Teruggevallen</button>
+            ${g.terugvallen.length ? `<button class="tekstknop" data-herstel="${g.id}">Laatste terugval ongedaan maken</button>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+    document.getElementById('lijst-afleren').addEventListener('click', e => {
+      const tv = e.target.closest('[data-terugval]'), hs = e.target.closest('[data-herstel]');
+      if (tv) {
+        const g = data.afleren.find(x => x.id === tv.dataset.terugval);
+        if (g && confirm(`Teruggevallen bij "${g.naam}"? Je teller begint dan opnieuw bij 0. Geeft niks, morgen weer een dag.`)) {
+          g.terugvallen.push(vandaag()); bewaar(); teken();
+        }
+      }
+      if (hs) {
+        const g = data.afleren.find(x => x.id === hs.dataset.herstel);
+        if (g) { g.terugvallen.sort(); g.terugvallen.pop(); bewaar(); teken(); }
+      }
+    });
+
+    // ---------- Aanleren ----------
+    function tekenAanleren() {
+      const el = document.getElementById('lijst-aanleren');
+      if (!data.aanleren.length) {
+        el.innerHTML = '<div class="leeg"><strong>Nog geen goede gewoontes</strong>Voeg een gewoonte toe die je wilt aanleren, bijvoorbeeld 10 minuten lezen of een wandeling.</div>';
+        return;
+      }
+      const t = vandaag();
+      const week = Array.from({ length: 7 }, (_, i) => plusDagen(t, i - 6));
+      el.innerHTML = data.aanleren.map(g => {
+        const r = reeks(d => !!g.gedaan[d]);
+        return `<div class="kaart">
+          <div class="gw-rij">
+            <button class="vink ${g.gedaan[t] ? 'aan' : ''}" data-vink="${g.id}" aria-label="Vandaag gedaan">✓</button>
+            <div class="gw-info"><div class="gw-naam">${esc(g.naam)}</div>
+              <div class="sub">${r ? `🔥 ${r} ${dagen(r)} op rij` : 'Nog geen reeks'}</div></div>
+            <button class="tekstknop" data-bewerk="aanleren" data-id="${g.id}">Bewerken</button>
+          </div>
+          <div class="week">${week.map(d => `<div class="dag ${g.gedaan[d] ? 'ja' : ''} ${d === t ? 'vandaag' : ''}">${dagNaam(d)}<i></i></div>`).join('')}</div>
+        </div>`;
+      }).join('');
+    }
+    document.getElementById('lijst-aanleren').addEventListener('click', e => {
+      const v = e.target.closest('[data-vink]');
+      if (!v) return;
+      const g = data.aanleren.find(x => x.id === v.dataset.vink), t = vandaag();
+      if (g.gedaan[t]) delete g.gedaan[t]; else g.gedaan[t] = true;
+      bewaar(); teken();
+    });
+
+    // ---------- Routine ----------
+    let moment = new Date().getHours() < 14 ? 'ochtend' : 'avond';
+    let bewerkModus = false;
+    function tekenRoutine() {
+      const t = vandaag();
+      document.querySelectorAll('[data-moment]').forEach(b => b.classList.toggle('aan', b.dataset.moment === moment));
+      document.getElementById('routine-kop').textContent = moment === 'ochtend' ? 'Ochtendroutine' : 'Avondroutine';
+      const stappen = data.routine[moment];
+      const gedaan = data.routineGedaan[t] || {};
+      const c = routineTelling(moment, t);
+      document.getElementById('routine-telling').textContent = c.totaal ? `${c.klaar}/${c.totaal}` : '';
+      document.getElementById('routine-balk').style.width = c.totaal ? `${Math.round(c.klaar / c.totaal * 100)}%` : '0';
+      document.getElementById('routine-bewerk').textContent = bewerkModus ? 'Klaar' : 'Bewerken';
+      document.getElementById('routine-bewerk').style.visibility = stappen.length ? 'visible' : 'hidden';
+      document.getElementById('routine-lijst').innerHTML = stappen.length
+        ? stappen.map(s => bewerkModus
+            ? `<div class="stap"><span class="tekst">${esc(s.naam)}</span><button class="weg" data-weg="${s.id}">Verwijderen</button></div>`
+            : `<button class="stap ${gedaan[s.id] ? 'aan' : ''}" data-stap="${s.id}"><span class="box">✓</span><span class="tekst">${esc(s.naam)}</span></button>`).join('')
+        : `<p class="sub" style="padding:14px 0">Nog geen stappen. Voeg hieronder je eerste stap toe.</p>`;
+      document.getElementById('routine-compleet').innerHTML = !bewerkModus && routineCompleet(moment, t) ? '<p class="compleet">✓ Routine compleet!</p>' : '';
+      const r = reeks(d => routineCompleet(moment, d));
+      document.getElementById('routine-reeks').textContent = r ? `🔥 ${r} ${dagen(r)} op rij volledig` : '';
+    }
+    document.querySelector('.tabs').addEventListener('click', e => {
+      const b = e.target.closest('[data-moment]');
+      if (b) { moment = b.dataset.moment; bewerkModus = false; teken(); }
+    });
+    document.getElementById('routine-bewerk').addEventListener('click', () => { bewerkModus = !bewerkModus; teken(); });
+    document.getElementById('routine-lijst').addEventListener('click', e => {
+      const s = e.target.closest('[data-stap]'), w = e.target.closest('[data-weg]');
+      const t = vandaag();
+      if (s) {
+        const g = data.routineGedaan[t] = data.routineGedaan[t] || {};
+        if (g[s.dataset.stap]) delete g[s.dataset.stap]; else g[s.dataset.stap] = true;
+        bewaar(); teken();
+      }
+      if (w) {
+        data.routine[moment] = data.routine[moment].filter(x => x.id !== w.dataset.weg);
+        if (!data.routine[moment].length) bewerkModus = false;
+        bewaar(); teken();
+      }
+    });
+    document.getElementById('routine-form').addEventListener('submit', e => {
+      e.preventDefault();
+      const inp = document.getElementById('routine-input');
+      const naam = inp.value.trim();
+      if (!naam) return;
+      data.routine[moment].push({ id: nieuwId(), naam });
+      inp.value = '';
+      bewaar(); teken();
+    });
+
+    // ---------- Invoerblad (toevoegen / bewerken) ----------
+    const scherm = document.getElementById('scherm');
+    let bladSoort = null, bladId = null;
+    function openBlad(soort, id) {
+      bladSoort = soort; bladId = id || null;
+      const item = id ? data[soort].find(x => x.id === id) : null;
+      document.getElementById('blad-titel').textContent =
+        (item ? 'Bewerken: ' : '') + (soort === 'afleren' ? 'Slechte gewoonte' : 'Goede gewoonte');
+      document.getElementById('blad-naam').value = item ? item.naam : '';
+      document.getElementById('blad-start-wrap').style.display = soort === 'afleren' ? 'block' : 'none';
+      document.getElementById('blad-start').value = item && item.start ? item.start : vandaag();
+      document.getElementById('blad-start').max = vandaag();
+      document.getElementById('blad-verwijder').style.display = item ? 'inline-flex' : 'none';
+      scherm.classList.add('open');
+      setTimeout(() => document.getElementById('blad-naam').focus(), 50);
+    }
+    const sluitBlad = () => scherm.classList.remove('open');
+    document.addEventListener('click', e => {
+      const n = e.target.closest('[data-nieuw]'), b = e.target.closest('[data-bewerk]');
+      if (n) openBlad(n.dataset.nieuw);
+      if (b) openBlad(b.dataset.bewerk, b.dataset.id);
+    });
+    document.getElementById('blad-annuleer').addEventListener('click', sluitBlad);
+    scherm.addEventListener('click', e => { if (e.target === scherm) sluitBlad(); });
+    document.getElementById('blad').addEventListener('submit', e => {
+      e.preventDefault();
+      const naam = document.getElementById('blad-naam').value.trim();
+      if (!naam) return;
+      let start = document.getElementById('blad-start').value || vandaag();
+      if (start > vandaag()) start = vandaag();
+      const lijst = data[bladSoort];
+      const item = bladId ? lijst.find(x => x.id === bladId) : null;
+      if (item) { item.naam = naam; if (bladSoort === 'afleren') item.start = start; }
+      else if (bladSoort === 'afleren') lijst.push({ id: nieuwId(), naam, start, terugvallen: [] });
+      else lijst.push({ id: nieuwId(), naam, gedaan: {} });
+      bewaar(); sluitBlad(); teken();
+    });
+    document.getElementById('blad-verwijder').addEventListener('click', () => {
+      const item = data[bladSoort].find(x => x.id === bladId);
+      if (item && confirm(`"${item.naam}" verwijderen? Je voortgang hiervan gaat verloren.`)) {
+        data[bladSoort] = data[bladSoort].filter(x => x.id !== bladId);
+        bewaar(); sluitBlad(); teken();
+      }
+    });
+
+    // ---------- Back-up ----------
+    document.getElementById('exporteer').addEventListener('click', async () => {
+      const json = JSON.stringify(data, null, 2);
+      const naam = `pop-backup-${vandaag()}.json`;
+      const file = new File([json], naam, { type: 'application/json' });
+      try {
+        if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: naam }); return; }
+      } catch (e) { if (e.name === 'AbortError') return; }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(file); a.download = naam; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    });
+    document.getElementById('importeer').addEventListener('click', () => document.getElementById('bestand').click());
+    document.getElementById('bestand').addEventListener('change', async e => {
+      const f = e.target.files[0]; e.target.value = '';
+      if (!f) return;
+      try {
+        const nieuw = JSON.parse(await f.text());
+        if (!nieuw || !Array.isArray(nieuw.afleren) || !Array.isArray(nieuw.aanleren) || !nieuw.routine) throw 0;
+        if (!confirm('Back-up terugzetten? Wat nu in de app staat wordt vervangen.')) return;
+        data = Object.assign(leegData(), nieuw); bewaar(); teken();
+        alert('Back-up teruggezet.');
+      } catch (err) { alert('Dit bestand is geen geldige POP-back-up.'); }
+    });
+
+    // ---------- Tekenen ----------
+    function teken() {
+      document.getElementById('datum').textContent =
+        new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
+      if (huidig === 'overzicht') tekenOverzicht();
+      if (huidig === 'afleren') tekenAfleren();
+      if (huidig === 'aanleren') tekenAanleren();
+      if (huidig === 'routine') tekenRoutine();
+    }
+    // Nieuwe dag? Opnieuw tekenen wanneer je de app weer opent.
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) teken(); });
+
+    let start = 'overzicht';
+    try { start = sessionStorage.getItem('pop-view') || 'overzicht'; } catch (e) {}
+    ga(titels[start] ? start : 'overzicht');
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+  })();
   </script>
 </body>
 </html>
