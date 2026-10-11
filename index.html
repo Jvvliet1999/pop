@@ -146,7 +146,12 @@
       background: var(--surface); border: 1px solid var(--line);
       display: grid; place-items: center; font-size: 19px; margin-bottom: 2px;
     }
-    .kop-knoppen { display: flex; gap: 8px; }
+    .kop-knoppen {
+      display: flex; gap: 8px;
+      position: fixed; z-index: 15; top: calc(env(safe-area-inset-top) + 12px); right: 12px;
+    }
+    header { padding-right: 112px !important; z-index: 3; }
+    header.zonder-titel { min-height: calc(env(safe-area-inset-top) + 64px); }
     #settings-knop.aan { background: var(--accent); border-color: var(--accent); }
     .datum { font-size: 13px; color: var(--muted); letter-spacing: .02em; }
     .datum::first-letter { text-transform: uppercase; }
@@ -349,9 +354,10 @@
     #refl-datum { flex: 1; }
     #refl-datum::first-letter { text-transform: uppercase; }
     .stemmingen { display: flex; gap: 6px; margin-top: 6px; }
-    .stemmingen button { flex: 1; font-size: 24px; padding: 8px 0; border-radius: 12px; border: 1px solid var(--line);
-      background: var(--bg); filter: grayscale(.8); opacity: .65; transition: all .15s; }
-    .stemmingen button.aan { filter: none; opacity: 1; border-color: var(--good); background: var(--good-soft); transform: scale(1.05); }
+    .stemmingen button { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 650; padding: 11px 0; border-radius: 12px;
+      border: 1px solid var(--line); background: var(--bg); color: var(--muted); transition: all .15s; }
+    .stemmingen button.aan { color: var(--on-accent); border-color: var(--accent); background: var(--accent); }
+    .stemming-label { font-size: 12px; font-weight: 650; padding: 3px 9px; border-radius: 999px; background: var(--good-soft); color: var(--good); }
     .refl-veld label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin: 16px 0 6px; }
     .refl-veld textarea { width: 100%; min-height: 64px; padding: 11px 12px; border-radius: 12px; border: 1px solid var(--line);
       background: var(--bg); font: inherit; color: inherit; resize: vertical; line-height: 1.45; }
@@ -528,12 +534,12 @@
 
   <nav>
     <div class="wrap">
+      <button data-ga="bibliotheek"><span class="ni">📚</span>Bibliotheek</button>
       <button data-ga="dashboard" class="aan"><span class="ni">🏠</span>Dashboard</button>
       <button data-ga="gewoontes"><span class="ni">🌱</span>Gewoontes</button>
+      <button data-ga="reflectie"><span class="ni">📝</span>Reflectie</button>
       <button data-ga="routine"><span class="ni">☀️</span>Routine</button>
       <button data-ga="todo"><span class="ni">✅</span>To do list</button>
-      <button data-ga="reflectie"><span class="ni">📝</span>Reflectie</button>
-      <button data-ga="bibliotheek"><span class="ni">📚</span>Bibliotheek</button>
     </div>
   </nav>
 
@@ -1279,7 +1285,7 @@
     });
 
     // ---------- Reflectie ----------
-    const STEMMINGEN = ['😞', '😕', '😐', '🙂', '😄'];
+    const STEMMINGEN = ['Slecht', 'Matig', 'Oké', 'Goed', 'Top'];
     const VRAGEN = [
       ['goed', 'Wat ging er vandaag goed?'],
       ['geleerd', 'Wat heb ik geleerd?'],
@@ -1310,7 +1316,7 @@
         ? dagen.slice(0, 60).map(d => { const x = data.reflecties[d];
             const tekst = VRAGEN.map(([k]) => x[k]).filter(Boolean).join(' · ');
             return `<button class="kaart archief-item" data-refl-dag="${d}">
-              <div class="kop"><span>${langeDatum(d)}</span><span>${x.stemming ? STEMMINGEN[x.stemming - 1] : ''}</span></div>
+              <div class="kop"><span>${langeDatum(d)}</span><span>${x.stemming ? `<span class="stemming-label">${STEMMINGEN[x.stemming - 1]}</span>` : ''}</span></div>
               ${tekst ? `<p>${esc(tekst)}</p>` : ''}</button>`; }).join('')
         : '<p class="sub" style="margin-top:8px">Je eerdere reflecties verschijnen hier.</p>';
     }
