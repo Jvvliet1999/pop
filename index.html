@@ -534,8 +534,8 @@
 
   <nav>
     <div class="wrap">
-      <button data-ga="bibliotheek"><span class="ni">📚</span>Bibliotheek</button>
       <button data-ga="dashboard" class="aan"><span class="ni">🏠</span>Dashboard</button>
+      <button data-ga="bibliotheek"><span class="ni">📚</span>Bibliotheek</button>
       <button data-ga="gewoontes"><span class="ni">🌱</span>Gewoontes</button>
       <button data-ga="reflectie"><span class="ni">📝</span>Reflectie</button>
       <button data-ga="routine"><span class="ni">☀️</span>Routine</button>
@@ -625,7 +625,7 @@
       ochtend: ['Glas water drinken', 'Bed opmaken', 'Tanden poetsen', 'Douchen (koud afsluiten)', 'Gezicht wassen + moisturizer met SPF',
                 'Deodorant', '10 min bewegen of stretchen', 'Eiwitrijk ontbijt', 'Supplementen', 'Top 3 taken voor vandaag'],
       avond:   ['Kleren en spullen voor morgen klaarleggen', 'Planning voor morgen', 'Douchen', 'Tanden poetsen + flossen',
-                'Gezicht wassen + moisturizer', 'Schermen uit 30 min voor bed', '15 min lezen', 'Dag terugblikken: 3 dingen die goed gingen',
+                'Gezicht wassen + moisturizer', 'Schermen uit 30 min voor bed', '15 min lezen',
                 'Op tijd naar bed (7–8 uur slaap)']
     };
     try {
@@ -638,6 +638,15 @@
           });
         });
         localStorage.setItem('pop-standaardroutine-1', '1');
+        bewaar();
+      }
+    } catch (e) {}
+
+    // Eenmalig: "Dag terugblikken" uit de avondroutine (zit nu in het tabblad Reflectie)
+    try {
+      if (!localStorage.getItem('pop-routine-opschoon-1')) {
+        data.routine.avond = (data.routine.avond || []).filter(x => !/^dag terugblikken/i.test(x.naam.trim()));
+        localStorage.setItem('pop-routine-opschoon-1', '1');
         bewaar();
       }
     } catch (e) {}
