@@ -245,6 +245,15 @@
     }
     .status.bezig { background: var(--sun-soft); color: var(--sun); }
     .status.klaar { background: var(--good-soft); color: var(--good); }
+    .status.heb { background: var(--moon-soft); color: var(--moon); }
+    .status.kopen { background: var(--bad-soft); color: var(--bad); }
+    .item-meta { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+    .item-meta b { color: var(--text); font-weight: 650; }
+    .item-notitie { font-size: 12.5px; color: var(--muted); font-style: italic; margin-top: 3px; }
+    .bieb-totaal { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; }
+    .bieb-totaal b { font-weight: 700; }
+    .volgende { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+    .tip { font-size: 13px; color: var(--sun); background: var(--sun-soft); border-radius: 10px; padding: 9px 11px; margin-top: 10px; line-height: 1.4; }
     .blad select {
       width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); font: inherit; color: inherit;
     }
@@ -431,14 +440,30 @@
   <div class="scherm" id="scherm-bieb">
     <form class="blad" id="blad-bieb">
       <h3 id="bieb-titel-kop"></h3>
+      <div style="max-height:68vh;overflow:auto">
       <label for="bieb-titel">Titel</label>
       <input id="bieb-titel" required autocomplete="off" maxlength="120">
       <label for="bieb-maker" id="bieb-maker-label">Auteur</label>
       <input id="bieb-maker" autocomplete="off" maxlength="80">
+      <div id="bieb-cat-wrap">
+        <label for="bieb-cat">Categorie</label>
+        <select id="bieb-cat"></select>
+      </div>
       <label for="bieb-status">Status</label>
       <select id="bieb-status"></select>
+      <div id="bieb-kopen-wrap" style="display:flex;gap:8px">
+        <div style="flex:1"><label for="bieb-prio">Prioriteit (#)</label>
+          <input id="bieb-prio" type="number" inputmode="numeric" min="1" max="99"></div>
+        <div style="flex:1"><label for="bieb-match">Match (%)</label>
+          <input id="bieb-match" type="number" inputmode="numeric" min="0" max="100"></div>
+      </div>
+      <div id="bieb-notitie-wrap">
+        <label for="bieb-notitie">Notitie (optioneel)</label>
+        <input id="bieb-notitie" autocomplete="off" maxlength="140">
+      </div>
       <label for="bieb-link">Link (optioneel)</label>
       <input id="bieb-link" type="text" inputmode="url" autocapitalize="off" autocomplete="off" placeholder="https://">
+      </div>
       <div class="rij">
         <button type="button" class="knop rood" id="bieb-verwijder">Verwijderen</button>
         <button type="button" class="knop zacht" id="bieb-annuleer">Annuleren</button>
@@ -456,7 +481,7 @@
       aanleren: [],                        // {id, naam, gedaan: {datum: true}}
       routine: { ochtend: [], avond: [] }, // {id, naam}
       routineGedaan: {},                   // {datum: {stapId: true}}
-      bibliotheek: { boeken: [], audio: [] } // {id, titel, maker, status: wil|bezig|klaar, link, klaarOp}
+      bibliotheek: { boeken: [], audio: [] } // boek: {id, titel, maker, categorie, status: kopen|heb|bezig|klaar, prio, match, notitie, link, klaarOp}
     });
     let data = leegData();
     try {
@@ -466,29 +491,43 @@
     const bewaar = () => { try { localStorage.setItem(SLEUTEL, JSON.stringify(data)); } catch (e) {} };
     const nieuwId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
-    // Eenmalig: startlijst boeken toevoegen (slaat titels over die er al staan)
+    // Startlijst boeken (eenmalig). Velden: titel, auteur, categorie, status, prioriteit, match %, notitie
     const STARTBOEKEN = [
-      ['The Psychology of Money', 'Morgan Housel', 'bezig'],
-      ['Meditations', 'Marcus Aurelius', 'bezig'],
-      ['The Little Book of Common Sense Investing', 'John C. Bogle', 'bezig'],
-      ['The Art of Spending Money', 'Morgan Housel', 'wil'],
-      ['The White Sniper', 'Tapio Saarelainen', 'klaar'],
-      ['David and Goliath', 'Malcolm Gladwell', 'klaar'],
-      ['The Bomber Mafia', 'Malcolm Gladwell', 'klaar'],
-      ['Operation Garbo', 'Juan Pujol García & Nigel West', 'klaar'],
-      ['To Kill a Mockingbird', 'Harper Lee', 'klaar']
+      ['David and Goliath', 'Malcolm Gladwell', 'mentaal', 'klaar'],
+      ['Meditations', 'Marcus Aurelius', 'mentaal', 'bezig'],
+      ['Thinking, Fast and Slow', 'Daniel Kahneman', 'mentaal', 'kopen', 10, 70],
+      ["Man's Search for Meaning", 'Viktor E. Frankl', 'levenslessen', 'kopen', 3, 90],
+      ['The Psychology of Money', 'Morgan Housel', 'geld', 'bezig'],
+      ['The Little Book of Common Sense Investing', 'John C. Bogle', 'geld', 'bezig'],
+      ['The Art of Spending Money', 'Morgan Housel', 'geld', 'heb', null, null, 'Lees na The Psychology of Money'],
+      ['A Man for All Markets', 'Edward O. Thorp', 'geld', 'kopen', 4, 85],
+      ['Reminiscences of a Stock Operator', 'Edwin Lefèvre', 'geld', 'kopen', 8, 75],
+      ['The Intelligent Investor', 'Benjamin Graham', 'geld', 'kopen', 9, 70],
+      ['Dopamine Nation', 'Anna Lembke', 'verslavingen', 'kopen', 5, 80],
+      ['Dreamland', 'Sam Quinones', 'verslavingen', 'kopen', 7, 75],
+      ['The White Sniper', 'Tapio Saarelainen', 'verhalen', 'klaar'],
+      ['Operation Garbo', 'Juan Pujol García & Nigel West', 'verhalen', 'klaar'],
+      ['The Bomber Mafia', 'Malcolm Gladwell', 'verhalen', 'klaar'],
+      ['Unbroken', 'Laura Hillenbrand', 'verhalen', 'kopen', 1, 90],
+      ['Bad Blood', 'John Carreyrou', 'verhalen', 'kopen', 2, 90],
+      ["Liar's Poker", 'Michael Lewis', 'verhalen', 'kopen', 6, 80]
     ];
     try {
-      if (!localStorage.getItem('pop-startboeken-1')) {
-        const b = data.bibliotheek = data.bibliotheek || { boeken: [], audio: [] };
-        b.boeken = b.boeken || [];
-        const bestaand = new Set(b.boeken.map(x => x.titel.trim().toLowerCase()));
-        STARTBOEKEN.forEach(([titel, maker, status], i) => {
-          if (!bestaand.has(titel.toLowerCase())) b.boeken.push({ id: 'start' + i, titel, maker, status, link: '', klaarOp: null });
+      const b = data.bibliotheek = data.bibliotheek || { boeken: [], audio: [] };
+      b.boeken = b.boeken || []; b.audio = b.audio || [];
+      if (!localStorage.getItem('pop-startboeken-2')) {
+        b.boeken = b.boeken.filter(x => x.id !== 'start8');   // eerder toegevoegd, staat niet in je lijst
+        STARTBOEKEN.forEach(([titel, maker, categorie, status, prio = null, match = null, notitie = ''], i) => {
+          const velden = { titel, maker, categorie, status, prio, match, notitie };
+          const x = b.boeken.find(y => y.titel.trim().toLowerCase() === titel.toLowerCase());
+          if (!x) b.boeken.push({ id: 'boek' + i, link: '', klaarOp: null, ...velden });
+          else if (String(x.id).startsWith('start')) Object.assign(x, velden);
+          else ['categorie', 'prio', 'match', 'notitie'].forEach(k => { if (x[k] == null || x[k] === '') x[k] = velden[k]; });
         });
-        bewaar();
-        localStorage.setItem('pop-startboeken-1', '1');
+        localStorage.setItem('pop-startboeken-2', '1');
       }
+      b.boeken.forEach(x => { if (x.status === 'wil') x.status = 'kopen'; if (!x.categorie) x.categorie = 'overig'; });
+      bewaar();
     } catch (e) {}
 
     // ---------- Datums ----------
@@ -869,44 +908,93 @@
 
     // ---------- Bibliotheek ----------
     const BIEB = {
-      boeken: { enkel: 'Boek', maker: 'Auteur', icoon: '📚', status: { wil: 'Wil ik lezen', bezig: 'Aan het lezen', klaar: 'Gelezen' },
+      boeken: { enkel: 'Boek', maker: 'Auteur',
+                volgorde: ['bezig', 'heb', 'kopen', 'klaar'], start: 'kopen',
+                cyclus: { kopen: 'heb', heb: 'bezig', bezig: 'klaar', klaar: 'kopen' },
+                status: { bezig: '📖 Bezig', heb: '📚 Heb ik', kopen: '🛒 Nog kopen', klaar: '✅ Gelezen' },
+                lang: { bezig: 'bezig', heb: 'heb ik', kopen: 'nog kopen', klaar: 'gelezen' },
                 leeg: 'Voeg een boek toe dat je wilt lezen, aan het lezen bent of al gelezen hebt.' },
-      audio:  { enkel: 'Audio', maker: 'Maker / spreker', icoon: '🎧', status: { wil: 'Wil ik luisteren', bezig: 'Aan het luisteren', klaar: 'Geluisterd' },
+      audio:  { enkel: 'Audio', maker: 'Maker / spreker',
+                volgorde: ['bezig', 'wil', 'klaar'], start: 'wil',
+                cyclus: { wil: 'bezig', bezig: 'klaar', klaar: 'wil' },
+                status: { wil: 'Wil ik luisteren', bezig: 'Aan het luisteren', klaar: 'Geluisterd' },
                 leeg: 'Voeg een luisterboek of podcast toe. Met een link open je hem direct vanuit de app.' }
+    };
+    const CATEGORIEEN = {
+      mentaal: '🧠 Mentale ontwikkeling & self-doubt',
+      levenslessen: '🧭 Levenslessen',
+      geld: '💰 Geld & investeren',
+      verslavingen: '🚬 Verslavingen',
+      verhalen: '📰 Interessante verhalen',
+      overig: '📎 Overig'
     };
     const kleuren = ['#c0674f', '#4b5fa8', '#2f8a4a', '#8a5aa8', '#d48a1c', '#3d8a96', '#a8506e'];
     const kleurVoor = t => kleuren[[...t].reduce((a, c) => a + c.charCodeAt(0), 0) % kleuren.length];
+    const letter = t => esc((t.trim().replace(/^(the|a|an|de|het|een)\s+/i, '')[0] || '?').toUpperCase());
     let biebSoort = 'boeken';
     const veiligeLink = l => /^https?:\/\//i.test(l || '') ? l : '';
+
+    function itemHTML(x) {
+      const cfg = BIEB[biebSoort], link = veiligeLink(x.link);
+      const kopen = biebSoort === 'boeken' && x.status === 'kopen' && (x.prio || x.match);
+      return `<div class="item">
+        <div class="omslag ${biebSoort === 'audio' ? 'audio' : ''}" style="background:${kleurVoor(x.titel)}">${letter(x.titel)}</div>
+        <div class="item-info">
+          <div class="item-titel">${esc(x.titel)}</div>
+          ${x.maker ? `<div class="sub">${esc(x.maker)}</div>` : ''}
+          ${kopen ? `<div class="item-meta">${x.prio ? `<b>#${x.prio}</b>` : ''}${x.prio && x.match ? ' · ' : ''}${x.match ? `ca. ${x.match}% match` : ''}</div>` : ''}
+          ${x.notitie ? `<div class="item-notitie">${esc(x.notitie)}</div>` : ''}
+          ${link ? `<a class="item-link" href="${esc(link)}" target="_blank" rel="noopener">${biebSoort === 'audio' ? '▶ Luisteren' : '↗ Openen'}</a>` : ''}
+        </div>
+        <div class="item-acties">
+          <button class="status ${x.status}" data-status="${x.id}">${cfg.status[x.status] || x.status}</button>
+          <button class="tekstknop" data-bieb-bewerk="${x.id}">Bewerken</button>
+        </div>
+      </div>`;
+    }
+    const sorteer = (a, b, cfg) =>
+      cfg.volgorde.indexOf(a.status) - cfg.volgorde.indexOf(b.status) ||
+      (a.status === 'kopen' ? (a.prio || 99) - (b.prio || 99) : 0);
+
     function tekenBibliotheek() {
       const cfg = BIEB[biebSoort], lijst = data.bibliotheek[biebSoort];
       document.querySelectorAll('[data-bieb]').forEach(b => b.classList.toggle('aan', b.dataset.bieb === biebSoort));
       document.getElementById('bieb-nieuw').textContent = `＋ ${cfg.enkel} toevoegen`;
       const el = document.getElementById('bieb-lijst');
-      if (!lijst.length) {
-        el.innerHTML = `<div class="leeg"><strong>Nog leeg</strong>${cfg.leeg}</div>`;
+      if (!lijst.length) { el.innerHTML = `<div class="leeg"><strong>Nog leeg</strong>${cfg.leeg}</div>`; return; }
+
+      if (biebSoort === 'audio') {
+        el.innerHTML = cfg.volgorde.map(st => {
+          const items = lijst.filter(x => x.status === st);
+          if (!items.length) return '';
+          return `<div class="label bieb-groep"><span>${cfg.status[st]}</span><span>${items.length}</span></div>
+            <div class="kaart" style="padding-top:4px;padding-bottom:4px">${items.map(itemHTML).join('')}</div>`;
+        }).join('');
         return;
       }
-      el.innerHTML = ['bezig', 'wil', 'klaar'].map(st => {
-        const items = lijst.filter(x => x.status === st);
+
+      // Boeken: totaal + volgende aankoop, daarna per categorie
+      const tel = st => lijst.filter(x => x.status === st).length;
+      const volgende = lijst.filter(x => x.status === 'kopen').sort((a, b) => (a.prio || 99) - (b.prio || 99))[0];
+      const open = tel('bezig');
+      let html = `<div class="kaart">
+        <div class="bieb-totaal">${['klaar', 'bezig', 'heb', 'kopen'].map(st =>
+          `<span>${cfg.status[st].split(' ')[0]} <b>${tel(st)}</b> ${cfg.lang[st]}</span>`).join('')}</div>
+        ${volgende ? `<div class="volgende">
+            <div class="omslag" style="background:${kleurVoor(volgende.titel)}">${letter(volgende.titel)}</div>
+            <div class="item-info"><div class="sub">Volgende aankoop</div>
+              <div class="item-titel">${esc(volgende.titel)}</div>
+              <div class="item-meta">${volgende.prio ? `<b>#${volgende.prio}</b>` : ''}${volgende.match ? ` · ca. ${volgende.match}% match` : ''}</div></div>
+          </div>` : ''}
+        ${volgende && open >= 3 ? `<div class="tip">💡 Je hebt nu ${open} boeken open. Wacht met de volgende aankoop tot je er één uit hebt.</div>` : ''}
+      </div>`;
+      html += Object.entries(CATEGORIEEN).map(([k, naam]) => {
+        const items = lijst.filter(x => (x.categorie || 'overig') === k).sort((a, b) => sorteer(a, b, cfg));
         if (!items.length) return '';
-        return `<div class="label bieb-groep"><span>${cfg.status[st]}</span><span>${items.length}</span></div>
-          <div class="kaart" style="padding-top:4px;padding-bottom:4px">${items.map(x => {
-            const link = veiligeLink(x.link);
-            return `<div class="item">
-              <div class="omslag ${biebSoort === 'audio' ? 'audio' : ''}" style="background:${kleurVoor(x.titel)}">${esc((x.titel.trim().replace(/^(the|a|an|de|het|een)\s+/i, '')[0] || '?').toUpperCase())}</div>
-              <div class="item-info">
-                <div class="item-titel">${esc(x.titel)}</div>
-                ${x.maker ? `<div class="sub">${esc(x.maker)}</div>` : ''}
-                ${link ? `<a class="item-link" href="${esc(link)}" target="_blank" rel="noopener">${biebSoort === 'audio' ? '▶ Luisteren' : '↗ Openen'}</a>` : ''}
-              </div>
-              <div class="item-acties">
-                <button class="status ${x.status}" data-status="${x.id}">${cfg.status[x.status]}</button>
-                <button class="tekstknop" data-bieb-bewerk="${x.id}">Bewerken</button>
-              </div>
-            </div>`;
-          }).join('')}</div>`;
+        return `<div class="label bieb-groep"><span>${naam}</span><span>${items.length}</span></div>
+          <div class="kaart" style="padding-top:4px;padding-bottom:4px">${items.map(itemHTML).join('')}</div>`;
       }).join('');
+      el.innerHTML = html;
     }
     document.querySelector('[data-view=bibliotheek] .tabs').addEventListener('click', e => {
       const b = e.target.closest('[data-bieb]');
@@ -914,9 +1002,9 @@
     });
     document.getElementById('bieb-lijst').addEventListener('click', e => {
       const st = e.target.closest('[data-status]'), bw = e.target.closest('[data-bieb-bewerk]');
-      if (st) {   // tik op status: wil → bezig → klaar → wil
+      if (st) {   // tik op status → volgende stap
         const x = data.bibliotheek[biebSoort].find(i => i.id === st.dataset.status);
-        x.status = { wil: 'bezig', bezig: 'klaar', klaar: 'wil' }[x.status];
+        x.status = BIEB[biebSoort].cyclus[x.status] || BIEB[biebSoort].start;
         x.klaarOp = x.status === 'klaar' ? vandaag() : null;
         bewaar(); teken();
       }
@@ -924,17 +1012,29 @@
     });
     const schermBieb = document.getElementById('scherm-bieb');
     let biebId = null;
+    const toonKopenVelden = () => {
+      document.getElementById('bieb-kopen-wrap').style.display =
+        biebSoort === 'boeken' && document.getElementById('bieb-status').value === 'kopen' ? 'flex' : 'none';
+    };
+    document.getElementById('bieb-status').addEventListener('change', toonKopenVelden);
     function openBieb(id) {
       biebId = id || null;
-      const cfg = BIEB[biebSoort];
+      const cfg = BIEB[biebSoort], boek = biebSoort === 'boeken';
       const x = id ? data.bibliotheek[biebSoort].find(i => i.id === id) : null;
       document.getElementById('bieb-titel-kop').textContent = (x ? 'Bewerken: ' : 'Nieuw: ') + cfg.enkel.toLowerCase();
       document.getElementById('bieb-maker-label').textContent = cfg.maker;
       document.getElementById('bieb-titel').value = x ? x.titel : '';
       document.getElementById('bieb-maker').value = x ? x.maker || '' : '';
       document.getElementById('bieb-link').value = x ? x.link || '' : '';
-      document.getElementById('bieb-status').innerHTML = Object.entries(cfg.status)
-        .map(([k, v]) => `<option value="${k}" ${(x ? x.status : 'wil') === k ? 'selected' : ''}>${v}</option>`).join('');
+      document.getElementById('bieb-notitie').value = x ? x.notitie || '' : '';
+      document.getElementById('bieb-prio').value = x && x.prio ? x.prio : '';
+      document.getElementById('bieb-match').value = x && x.match ? x.match : '';
+      document.getElementById('bieb-cat-wrap').style.display = boek ? 'block' : 'none';
+      document.getElementById('bieb-cat').innerHTML = Object.entries(CATEGORIEEN)
+        .map(([k, v]) => `<option value="${k}" ${(x ? x.categorie : 'overig') === k ? 'selected' : ''}>${v}</option>`).join('');
+      document.getElementById('bieb-status').innerHTML = cfg.volgorde
+        .map(k => `<option value="${k}" ${(x ? x.status : cfg.start) === k ? 'selected' : ''}>${cfg.status[k]}</option>`).join('');
+      toonKopenVelden();
       document.getElementById('bieb-verwijder').style.display = x ? 'inline-flex' : 'none';
       schermBieb.classList.add('open');
       setTimeout(() => document.getElementById('bieb-titel').focus(), 50);
@@ -949,13 +1049,16 @@
       if (!titel) return;
       let link = document.getElementById('bieb-link').value.trim();
       if (link && !/^https?:\/\//i.test(link)) link = 'https://' + link;
+      const getal = id => { const v = parseInt(document.getElementById(id).value, 10); return isNaN(v) ? null : v; };
       const velden = { titel, maker: document.getElementById('bieb-maker').value.trim(),
-                       status: document.getElementById('bieb-status').value, link };
+                       status: document.getElementById('bieb-status').value, link,
+                       notitie: document.getElementById('bieb-notitie').value.trim() };
+      if (biebSoort === 'boeken') Object.assign(velden, {
+        categorie: document.getElementById('bieb-cat').value, prio: getal('bieb-prio'), match: getal('bieb-match') });
       const lijst = data.bibliotheek[biebSoort];
       const x = biebId ? lijst.find(i => i.id === biebId) : null;
       if (x) {
-        if (velden.status === 'klaar' && x.status !== 'klaar') velden.klaarOp = vandaag();
-        if (velden.status !== 'klaar') velden.klaarOp = null;
+        velden.klaarOp = velden.status === 'klaar' ? (x.status === 'klaar' ? x.klaarOp : vandaag()) : null;
         Object.assign(x, velden);
       } else lijst.push({ id: nieuwId(), ...velden, klaarOp: velden.status === 'klaar' ? vandaag() : null });
       bewaar(); sluitBieb(); teken();
