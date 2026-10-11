@@ -235,6 +235,7 @@
       display: grid; place-items: center; font-size: 18px; font-weight: 700; color: #fff;
     }
     .omslag.audio { height: 40px; border-radius: 50%; }
+    img.omslag { object-fit: cover; background: var(--line); box-shadow: 0 1px 3px rgba(0,0,0,.25); }
     .item-info { flex: 1; min-width: 0; }
     .item-titel { font-weight: 600; overflow-wrap: anywhere; }
     .item-link { font-size: 13px; color: var(--moon); text-decoration: none; font-weight: 600; }
@@ -451,11 +452,13 @@
       </div>
       <label for="bieb-status">Status</label>
       <select id="bieb-status"></select>
-      <div id="bieb-kopen-wrap" style="display:flex;gap:8px">
-        <div style="flex:1"><label for="bieb-prio">Prioriteit (#)</label>
-          <input id="bieb-prio" type="number" inputmode="numeric" min="1" max="99"></div>
-        <div style="flex:1"><label for="bieb-match">Match (%)</label>
-          <input id="bieb-match" type="number" inputmode="numeric" min="0" max="100"></div>
+      <div id="bieb-kopen-wrap">
+        <label for="bieb-prio">Prioriteit (#)</label>
+        <input id="bieb-prio" type="number" inputmode="numeric" min="1" max="99">
+      </div>
+      <div id="bieb-omslag-wrap">
+        <label for="bieb-omslag">Omslag-afbeelding (link, leeg = automatisch zoeken)</label>
+        <input id="bieb-omslag" type="text" inputmode="url" autocapitalize="off" autocomplete="off" placeholder="Automatisch">
       </div>
       <div id="bieb-notitie-wrap">
         <label for="bieb-notitie">Notitie (optioneel)</label>
@@ -936,13 +939,16 @@
 
     function itemHTML(x) {
       const cfg = BIEB[biebSoort], link = veiligeLink(x.link);
-      const kopen = biebSoort === 'boeken' && x.status === 'kopen' && (x.prio || x.match);
+      const kopen = biebSoort === 'boeken' && x.status === 'kopen' && x.prio;
+      const veiligOmslag = biebSoort === 'boeken' ? veiligeLink(x.omslag) : '';
       return `<div class="item">
-        <div class="omslag ${biebSoort === 'audio' ? 'audio' : ''}" style="background:${kleurVoor(x.titel)}">${letter(x.titel)}</div>
+        ${veiligOmslag
+          ? `<img class="omslag" src="${esc(veiligOmslag)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-letter="${letter(x.titel)}" data-kleur="${kleurVoor(x.titel)}">`
+          : `<div class="omslag ${biebSoort === 'audio' ? 'audio' : ''}" style="background:${kleurVoor(x.titel)}">${letter(x.titel)}</div>`}
         <div class="item-info">
           <div class="item-titel">${esc(x.titel)}</div>
           ${x.maker ? `<div class="sub">${esc(x.maker)}</div>` : ''}
-          ${kopen ? `<div class="item-meta">${x.prio ? `<b>#${x.prio}</b>` : ''}${x.prio && x.match ? ' · ' : ''}${x.match ? `ca. ${x.match}% match` : ''}</div>` : ''}
+          ${kopen ? `<div class="item-meta"><b>#${x.prio}</b> prioriteit</div>` : ''}
           ${x.notitie ? `<div class="item-notitie">${esc(x.notitie)}</div>` : ''}
           ${link ? `<a class="item-link" href="${esc(link)}" target="_blank" rel="noopener">${biebSoort === 'audio' ? '▶ Luisteren' : '↗ Openen'}</a>` : ''}
         </div>
@@ -973,21 +979,8 @@
         return;
       }
 
-      // Boeken: totaal + volgende aankoop, daarna per categorie
-      const tel = st => lijst.filter(x => x.status === st).length;
-      const volgende = lijst.filter(x => x.status === 'kopen').sort((a, b) => (a.prio || 99) - (b.prio || 99))[0];
-      const open = tel('bezig');
-      let html = `<div class="kaart">
-        <div class="bieb-totaal">${['klaar', 'bezig', 'heb', 'kopen'].map(st =>
-          `<span>${cfg.status[st].split(' ')[0]} <b>${tel(st)}</b> ${cfg.lang[st]}</span>`).join('')}</div>
-        ${volgende ? `<div class="volgende">
-            <div class="omslag" style="background:${kleurVoor(volgende.titel)}">${letter(volgende.titel)}</div>
-            <div class="item-info"><div class="sub">Volgende aankoop</div>
-              <div class="item-titel">${esc(volgende.titel)}</div>
-              <div class="item-meta">${volgende.prio ? `<b>#${volgende.prio}</b>` : ''}${volgende.match ? ` · ca. ${volgende.match}% match` : ''}</div></div>
-          </div>` : ''}
-        ${volgende && open >= 3 ? `<div class="tip">💡 Je hebt nu ${open} boeken open. Wacht met de volgende aankoop tot je er één uit hebt.</div>` : ''}
-      </div>`;
+      // Boeken: per categorie
+      let html = '';
       html += Object.entries(CATEGORIEEN).map(([k, naam]) => {
         const items = lijst.filter(x => (x.categorie || 'overig') === k).sort((a, b) => sorteer(a, b, cfg));
         if (!items.length) return '';
@@ -995,7 +988,49 @@
           <div class="kaart" style="padding-top:4px;padding-bottom:4px">${items.map(itemHTML).join('')}</div>`;
       }).join('');
       el.innerHTML = html;
+      zoekOmslagen();
     }
+
+    // ---------- Omslagen automatisch zoeken (Google Books, anders Open Library) ----------
+    let bezigMetZoeken = false;
+    async function vindOmslag(x) {
+      const titel = x.titel.trim(), achternaam = (x.maker || '').split(/[&,]/)[0].trim().split(' ').pop();
+      try {
+        const q = `intitle:"${titel}"` + (achternaam ? ` inauthor:${achternaam}` : '');
+        const r = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=10&printType=books`);
+        if (r.ok) {
+          const j = await r.json();
+          const hit = (j.items || []).map(i => i.volumeInfo || {}).find(v => v.imageLinks && (v.imageLinks.thumbnail || v.imageLinks.smallThumbnail));
+          if (hit) return (hit.imageLinks.thumbnail || hit.imageLinks.smallThumbnail).replace(/^http:/, 'https:').replace('&edge=curl', '');
+        }
+      } catch (e) {}
+      const r2 = await fetch(`https://openlibrary.org/search.json?title=${encodeURIComponent(titel)}` +
+        (achternaam ? `&author=${encodeURIComponent(achternaam)}` : '') + '&limit=5&fields=cover_i');
+      if (!r2.ok) throw new Error('netwerk');
+      const j2 = await r2.json();
+      const doc = (j2.docs || []).find(d => d.cover_i);
+      return doc ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` : '';
+    }
+    async function zoekOmslagen() {
+      if (bezigMetZoeken || !navigator.onLine) return;
+      const teZoeken = data.bibliotheek.boeken.filter(x => !x.omslag && !x.omslagGezocht);
+      if (!teZoeken.length) return;
+      bezigMetZoeken = true;
+      for (const x of teZoeken) {
+        try { x.omslag = await vindOmslag(x); x.omslagGezocht = true; bewaar(); }
+        catch (e) { break; }          // geen internet: later opnieuw proberen
+      }
+      bezigMetZoeken = false;
+      if (huidig === 'bibliotheek') teken();
+    }
+    // Kapotte afbeelding: terug naar de gekleurde letter
+    document.addEventListener('error', e => {
+      const img = e.target;
+      if (!(img instanceof HTMLImageElement) || !img.classList.contains('omslag')) return;
+      const d = document.createElement('div');
+      d.className = 'omslag'; d.style.background = img.dataset.kleur; d.textContent = img.dataset.letter;
+      img.replaceWith(d);
+    }, true);
     document.querySelector('[data-view=bibliotheek] .tabs').addEventListener('click', e => {
       const b = e.target.closest('[data-bieb]');
       if (b) { biebSoort = b.dataset.bieb; teken(); }
@@ -1014,7 +1049,7 @@
     let biebId = null;
     const toonKopenVelden = () => {
       document.getElementById('bieb-kopen-wrap').style.display =
-        biebSoort === 'boeken' && document.getElementById('bieb-status').value === 'kopen' ? 'flex' : 'none';
+        biebSoort === 'boeken' && document.getElementById('bieb-status').value === 'kopen' ? 'block' : 'none';
     };
     document.getElementById('bieb-status').addEventListener('change', toonKopenVelden);
     function openBieb(id) {
@@ -1028,8 +1063,9 @@
       document.getElementById('bieb-link').value = x ? x.link || '' : '';
       document.getElementById('bieb-notitie').value = x ? x.notitie || '' : '';
       document.getElementById('bieb-prio').value = x && x.prio ? x.prio : '';
-      document.getElementById('bieb-match').value = x && x.match ? x.match : '';
       document.getElementById('bieb-cat-wrap').style.display = boek ? 'block' : 'none';
+      document.getElementById('bieb-omslag-wrap').style.display = boek ? 'block' : 'none';
+      document.getElementById('bieb-omslag').value = x && x.omslag ? x.omslag : '';
       document.getElementById('bieb-cat').innerHTML = Object.entries(CATEGORIEEN)
         .map(([k, v]) => `<option value="${k}" ${(x ? x.categorie : 'overig') === k ? 'selected' : ''}>${v}</option>`).join('');
       document.getElementById('bieb-status').innerHTML = cfg.volgorde
@@ -1053,8 +1089,16 @@
       const velden = { titel, maker: document.getElementById('bieb-maker').value.trim(),
                        status: document.getElementById('bieb-status').value, link,
                        notitie: document.getElementById('bieb-notitie').value.trim() };
+      if (biebSoort === 'boeken') {
+        let om = document.getElementById('bieb-omslag').value.trim();
+        if (om && !/^https?:\/\//i.test(om)) om = 'https://' + om;
+        const oud = biebId ? data.bibliotheek.boeken.find(i => i.id === biebId) : null;
+        const titelAnders = oud && (oud.titel !== titel || oud.maker !== velden.maker);
+        velden.omslag = om;
+        velden.omslagGezocht = !!om || (oud && !titelAnders && oud.omslagGezocht && oud.omslag === om) || false;
+      }
       if (biebSoort === 'boeken') Object.assign(velden, {
-        categorie: document.getElementById('bieb-cat').value, prio: getal('bieb-prio'), match: getal('bieb-match') });
+        categorie: document.getElementById('bieb-cat').value, prio: getal('bieb-prio') });
       const lijst = data.bibliotheek[biebSoort];
       const x = biebId ? lijst.find(i => i.id === biebId) : null;
       if (x) {
