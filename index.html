@@ -276,6 +276,8 @@
     .bieb-groep { display: flex; align-items: baseline; justify-content: space-between; }
     .item { display: flex; gap: 12px; align-items: flex-start; padding: 13px 0; border-bottom: 1px solid var(--line); }
     .item:last-child { border-bottom: none; }
+    .item[data-bieb-bewerk] { cursor: pointer; border-radius: 10px; transition: background .15s; }
+    .item[data-bieb-bewerk]:active { background: var(--line); }
     .omslag {
       width: 40px; height: 54px; border-radius: 6px; flex: none;
       display: grid; place-items: center; font-size: 18px; font-weight: 700; color: #fff;
@@ -401,18 +403,22 @@
       </div>
     </section>
 
-    <!-- AFLEREN -->
-    <section data-view="afleren">
-      <p class="sub" style="margin-top:4px">Houd bij hoe lang je al vrij bent van een slechte gewoonte.</p>
-      <div id="lijst-afleren"></div>
-      <button class="knop breed" data-nieuw="afleren">＋ Slechte gewoonte toevoegen</button>
-    </section>
-
-    <!-- AANLEREN -->
-    <section data-view="aanleren">
-      <p class="sub" style="margin-top:4px">Vink elke dag af wat je gedaan hebt en bouw een reeks op.</p>
-      <div id="lijst-aanleren"></div>
-      <button class="knop breed" data-nieuw="aanleren">＋ Goede gewoonte toevoegen</button>
+    <!-- GEWOONTES -->
+    <section data-view="gewoontes">
+      <div class="tabs">
+        <button data-gw="afleren">🚫 Afleren</button>
+        <button data-gw="aanleren">🌱 Aanleren</button>
+      </div>
+      <div data-gw-paneel="afleren">
+        <p class="sub" style="margin-top:14px">Houd bij hoe lang je al vrij bent van een slechte gewoonte.</p>
+        <div id="lijst-afleren"></div>
+        <button class="knop breed" data-nieuw="afleren">＋ Slechte gewoonte toevoegen</button>
+      </div>
+      <div data-gw-paneel="aanleren">
+        <p class="sub" style="margin-top:14px">Vink elke dag af wat je gedaan hebt en bouw een reeks op.</p>
+        <div id="lijst-aanleren"></div>
+        <button class="knop breed" data-nieuw="aanleren">＋ Goede gewoonte toevoegen</button>
+      </div>
     </section>
 
     <!-- ROUTINE -->
@@ -442,8 +448,7 @@
   <nav>
     <div class="wrap">
       <button data-ga="dashboard" class="aan"><span class="ni">🏠</span>Dashboard</button>
-      <button data-ga="afleren"><span class="ni">🚫</span>Afleren</button>
-      <button data-ga="aanleren"><span class="ni">🌱</span>Aanleren</button>
+      <button data-ga="gewoontes"><span class="ni">🌱</span>Gewoontes</button>
       <button data-ga="routine"><span class="ni">☀️</span>Routine</button>
       <button data-ga="bibliotheek"><span class="ni">📚</span>Bibliotheek</button>
     </div>
@@ -623,7 +628,7 @@
     };
 
     // ---------- Navigatie ----------
-    const titels = { dashboard: 'Dashboard', afleren: 'Afleren', aanleren: 'Aanleren', routine: 'Routine', bibliotheek: 'Bibliotheek', settings: 'Settings' };
+    const titels = { dashboard: 'Dashboard', gewoontes: 'Gewoontes', routine: 'Routine', bibliotheek: 'Bibliotheek', settings: 'Settings' };
     let huidig = 'dashboard';
     function ga(view) {
       huidig = view;
@@ -811,6 +816,22 @@
       if (momentNu() !== dashMoment || a.s === 0) tekenDashboard(); else tekenKlok();
     }, 1000);
 
+    // ---------- Gewoontes (afleren + aanleren) ----------
+    let gwSoort = 'afleren';
+    try { gwSoort = sessionStorage.getItem('pop-gw') || 'afleren'; } catch (e) {}
+    function tekenGewoontes() {
+      document.querySelectorAll('[data-gw]').forEach(b => b.classList.toggle('aan', b.dataset.gw === gwSoort));
+      document.querySelectorAll('[data-gw-paneel]').forEach(p => p.style.display = p.dataset.gwPaneel === gwSoort ? '' : 'none');
+      if (gwSoort === 'afleren') tekenAfleren(); else tekenAanleren();
+    }
+    document.querySelector('[data-view=gewoontes] .tabs').addEventListener('click', e => {
+      const b = e.target.closest('[data-gw]');
+      if (!b) return;
+      gwSoort = b.dataset.gw;
+      try { sessionStorage.setItem('pop-gw', gwSoort); } catch (e) {}
+      teken();
+    });
+
     // ---------- Routine ----------
     let moment = momentNu() === 'middag' ? 'avond' : momentNu();
     let bewerkModus = false;
@@ -834,7 +855,7 @@
       const r = reeks(d => routineCompleet(moment, d));
       document.getElementById('routine-reeks').textContent = r ? `🔥 ${r} ${dagen(r)} op rij volledig` : '';
     }
-    document.querySelector('.tabs').addEventListener('click', e => {
+    document.querySelector('[data-view=routine] .tabs').addEventListener('click', e => {
       const b = e.target.closest('[data-moment]');
       if (b) { moment = b.dataset.moment; bewerkModus = false; teken(); }
     });
@@ -965,7 +986,7 @@
       const cfg = BIEB[biebSoort], link = veiligeLink(x.link);
       const kopen = biebSoort === 'boeken' && x.status === 'kopen' && x.prio;
       const veiligOmslag = biebSoort === 'boeken' ? veiligeLink(x.omslag) : '';
-      return `<div class="item">
+      return `<div class="item" data-bieb-bewerk="${x.id}" role="button" tabindex="0">
         ${veiligOmslag
           ? `<img class="omslag" src="${esc(veiligOmslag)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-letter="${letter(x.titel)}" data-kleur="${kleurVoor(x.titel)}">`
           : `<div class="omslag ${biebSoort === 'audio' ? 'audio' : ''}" style="background:${kleurVoor(x.titel)}">${letter(x.titel)}</div>`}
@@ -978,7 +999,6 @@
         </div>
         <div class="item-acties">
           <button class="status ${x.status}" data-status="${x.id}">${cfg.status[x.status] || x.status}</button>
-          <button class="tekstknop" data-bieb-bewerk="${x.id}">Bewerken</button>
         </div>
       </div>`;
     }
@@ -1060,7 +1080,8 @@
       if (b) { biebSoort = b.dataset.bieb; teken(); }
     });
     document.getElementById('bieb-lijst').addEventListener('click', e => {
-      const st = e.target.closest('[data-status]'), bw = e.target.closest('[data-bieb-bewerk]');
+      if (e.target.closest('a')) return;   // link openen, niet bewerken
+      const st = e.target.closest('[data-status]'), bw = !st && e.target.closest('[data-bieb-bewerk]');
       if (st) {   // tik op status → volgende stap
         const x = data.bibliotheek[biebSoort].find(i => i.id === st.dataset.status);
         x.status = BIEB[biebSoort].cyclus[x.status] || BIEB[biebSoort].start;
@@ -1162,8 +1183,7 @@
       document.getElementById('datum').textContent =
         new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
       if (huidig === 'dashboard') tekenDashboard();
-      if (huidig === 'afleren') tekenAfleren();
-      if (huidig === 'aanleren') tekenAanleren();
+      if (huidig === 'gewoontes') tekenGewoontes();
       if (huidig === 'routine') tekenRoutine();
       if (huidig === 'bibliotheek') tekenBibliotheek();
     }
