@@ -466,6 +466,31 @@
     const bewaar = () => { try { localStorage.setItem(SLEUTEL, JSON.stringify(data)); } catch (e) {} };
     const nieuwId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
+    // Eenmalig: startlijst boeken toevoegen (slaat titels over die er al staan)
+    const STARTBOEKEN = [
+      ['The Psychology of Money', 'Morgan Housel', 'bezig'],
+      ['Meditations', 'Marcus Aurelius', 'bezig'],
+      ['The Little Book of Common Sense Investing', 'John C. Bogle', 'bezig'],
+      ['The Art of Spending Money', 'Morgan Housel', 'wil'],
+      ['The White Sniper', 'Tapio Saarelainen', 'klaar'],
+      ['David and Goliath', 'Malcolm Gladwell', 'klaar'],
+      ['The Bomber Mafia', 'Malcolm Gladwell', 'klaar'],
+      ['Operation Garbo', 'Juan Pujol García & Nigel West', 'klaar'],
+      ['To Kill a Mockingbird', 'Harper Lee', 'klaar']
+    ];
+    try {
+      if (!localStorage.getItem('pop-startboeken-1')) {
+        const b = data.bibliotheek = data.bibliotheek || { boeken: [], audio: [] };
+        b.boeken = b.boeken || [];
+        const bestaand = new Set(b.boeken.map(x => x.titel.trim().toLowerCase()));
+        STARTBOEKEN.forEach(([titel, maker, status], i) => {
+          if (!bestaand.has(titel.toLowerCase())) b.boeken.push({ id: 'start' + i, titel, maker, status, link: '', klaarOp: null });
+        });
+        bewaar();
+        localStorage.setItem('pop-startboeken-1', '1');
+      }
+    } catch (e) {}
+
     // ---------- Datums ----------
     const sleutel = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const vandaag = () => sleutel(new Date());
@@ -869,7 +894,7 @@
           <div class="kaart" style="padding-top:4px;padding-bottom:4px">${items.map(x => {
             const link = veiligeLink(x.link);
             return `<div class="item">
-              <div class="omslag ${biebSoort === 'audio' ? 'audio' : ''}" style="background:${kleurVoor(x.titel)}">${esc(x.titel.trim()[0] || '?').toUpperCase()}</div>
+              <div class="omslag ${biebSoort === 'audio' ? 'audio' : ''}" style="background:${kleurVoor(x.titel)}">${esc((x.titel.trim().replace(/^(the|a|an|de|het|een)\s+/i, '')[0] || '?').toUpperCase())}</div>
               <div class="item-info">
                 <div class="item-titel">${esc(x.titel)}</div>
                 ${x.maker ? `<div class="sub">${esc(x.maker)}</div>` : ''}
