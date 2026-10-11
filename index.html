@@ -248,6 +248,9 @@
     .stap.aan .box { background: var(--good); border-color: var(--good); color: var(--on-accent); }
     .stap.aan .tekst { color: var(--muted); text-decoration: line-through; }
     .stap .tekst { flex: 1; overflow-wrap: anywhere; }
+    .stap-naam { flex: 1; min-width: 0; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line);
+      background: var(--bg); font: inherit; color: inherit; }
+    .stap-naam:focus { outline: 2px solid var(--good); outline-offset: 0; }
     .stap .weg { color: var(--bad); font-size: 14px; padding: 4px 8px; }
     .toevoegen { display: flex; gap: 8px; margin-top: 12px; }
     .toevoegen input {
@@ -347,6 +350,13 @@
     .chips button.aan { background: var(--good); border-color: var(--good); color: var(--on-accent); }
     .maanddag { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
     .maanddag select { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); font: inherit; color: inherit; }
+    .prio { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; flex: none;
+      background: var(--line); color: var(--muted); }
+    .prio.hoog { background: var(--bad-soft); color: var(--bad); }
+    .prio.laag { background: var(--moon-soft); color: var(--moon); }
+    .prio-kies button[data-prio="hoog"].aan { background: var(--bad); border-color: var(--bad); }
+    .prio-kies button[data-prio="laag"].aan { background: var(--moon); border-color: var(--moon); }
+    .prio-kies button[data-prio="normaal"].aan { background: var(--accent); border-color: var(--accent); }
     .todo .box.later { border: none; color: var(--muted); font-size: 18px; font-weight: 700; }
     .todo .meta { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
     .todo .herhaal-icoon { font-size: 12px; color: var(--good); font-weight: 700; }
@@ -460,6 +470,15 @@
         </div>
       </div>
 
+      <div class="kaart" id="dash-taken" style="display:none">
+        <div class="kaart-kop">
+          <div class="icoon i-bad">!</div>
+          <h2>Belangrijk vandaag</h2>
+          <button class="tekstknop" data-ga="todo">Alle taken ›</button>
+        </div>
+        <div id="dash-taken-lijst" style="margin-top:4px"></div>
+      </div>
+
       <div class="kaart" id="dash-routine">
         <div class="kaart-kop">
           <div class="icoon" id="dash-icoon"></div>
@@ -480,6 +499,11 @@
         <div class="toevoegen" style="margin-top:0">
           <input id="todo-input" placeholder="Nieuwe taak…" autocomplete="off" enterkeyhint="done" maxlength="140">
           <button class="knop" type="submit">＋</button>
+        </div>
+        <div class="chips prio-kies" id="todo-prio">
+          <button type="button" data-prio="laag">Laag</button>
+          <button type="button" data-prio="normaal" class="aan">Normaal</button>
+          <button type="button" data-prio="hoog">Hoog</button>
         </div>
         <div class="tabs klein" id="todo-type">
           <button type="button" data-type="eenmalig" class="aan">Eenmalig</button>
@@ -550,8 +574,8 @@
     <!-- GEWOONTES -->
     <section data-view="gewoontes">
       <div class="tabs">
-        <button data-gw="afleren">🚫 Afleren</button>
         <button data-gw="aanleren">🌱 Aanleren</button>
+        <button data-gw="afleren">🚫 Afleren</button>
       </div>
       <div data-gw-paneel="afleren">
         <p class="sub" style="margin-top:14px">Houd bij hoe lang je al vrij bent van een slechte gewoonte.</p>
@@ -697,9 +721,9 @@
     // Standaard ochtend- en avondroutine (eenmalig, vult alleen aan wat er nog niet staat)
     const STANDAARDROUTINE = {
       ochtend: ['Glas water drinken', 'Bed opmaken', 'Tanden poetsen', 'Douchen (koud afsluiten)', 'Gezicht wassen + moisturizer met SPF',
-                'Deodorant', '10 min bewegen of stretchen', 'Eiwitrijk ontbijt', 'Supplementen', 'Top 3 taken voor vandaag'],
+                'Deodorant', '10 min bewegen of stretchen', 'Eiwitrijk ontbijt', 'Creatine (3–5 g)', 'Zink bij ontbijt', 'Top 3 taken voor vandaag'],
       avond:   ['Kleren en spullen voor morgen klaarleggen', 'Planning voor morgen', 'Douchen', 'Tanden poetsen + flossen',
-                'Gezicht wassen + moisturizer', 'Schermen uit 30 min voor bed', '15 min lezen',
+                'Gezicht wassen + moisturizer', 'Schermen uit 30 min voor bed', 'Magnesium (30–60 min voor bed)', '15 min lezen',
                 'Op tijd naar bed (7–8 uur slaap)']
     };
     try {
@@ -721,6 +745,26 @@
       if (!localStorage.getItem('pop-routine-opschoon-1')) {
         data.routine.avond = (data.routine.avond || []).filter(x => !/^dag terugblikken/i.test(x.naam.trim()));
         localStorage.setItem('pop-routine-opschoon-1', '1');
+        bewaar();
+      }
+    } catch (e) {}
+
+    // Eenmalig: "Supplementen" vervangen door creatine + zink (ochtend) en magnesium (avond)
+    try {
+      if (!localStorage.getItem('pop-supplementen-1')) {
+        const o = data.routine.ochtend = data.routine.ochtend || [], a = data.routine.avond = data.routine.avond || [];
+        const heeft = (l, re) => l.some(x => re.test(x.naam));
+        const nieuw = [];
+        if (!heeft(o, /creatine/i)) nieuw.push({ id: 'sup-creatine', naam: 'Creatine (3–5 g)' });
+        if (!heeft(o, /zink|zinc/i)) nieuw.push({ id: 'sup-zink', naam: 'Zink bij ontbijt' });
+        const i = o.findIndex(x => /^supplementen$/i.test(x.naam.trim()));
+        if (i >= 0) o.splice(i, 1, ...nieuw); else o.push(...nieuw);
+        if (!heeft(a, /magnesium/i)) {
+          const j = a.findIndex(x => /15 min lezen|op tijd naar bed/i.test(x.naam));
+          const mg = { id: 'sup-magnesium', naam: 'Magnesium (30–60 min voor bed)' };
+          if (j >= 0) a.splice(j, 0, mg); else a.push(mg);
+        }
+        localStorage.setItem('pop-supplementen-1', '1');
         bewaar();
       }
     } catch (e) {}
@@ -960,6 +1004,16 @@
       document.getElementById('welkom-bron').textContent = `— ${bron}`;
       tekenKlok();
 
+      // Taken met hoge prioriteit (open eenmalige + terugkerende die vandaag aan de beurt zijn)
+      const vd = vandaag();
+      const hoog = data.todos.filter(x => prioVan(x) === 'hoog' &&
+        (x.type === 'herhaal' ? isVandaagAanDeBeurt(x, vd) : (!x.klaar || x.klaarOp === vd)));
+      document.getElementById('dash-taken').style.display = hoog.length ? '' : 'none';
+      document.getElementById('dash-taken-lijst').innerHTML = hoog.map(x => {
+        const klaar = x.type === 'herhaal' ? !!(x.gedaan || {})[vd] : x.klaar;
+        return `<button class="stap ${klaar ? 'aan' : ''}" data-dash-todo="${x.id}"><span class="box">✓</span><span class="tekst">${esc(x.tekst)}</span></button>`;
+      }).join('');
+
       const toonRoutine = m !== 'middag';
       document.getElementById('dash-routine').style.display = toonRoutine ? '' : 'none';
       document.getElementById('dash-reeks').style.display = toonRoutine ? '' : 'none';
@@ -978,6 +1032,14 @@
       const r = reeks(d => routineCompleet(m, d));
       document.getElementById('dash-reeks').textContent = r ? `🔥 ${r} ${dagen(r)} op rij volledig` : '';
     }
+    document.getElementById('dash-taken-lijst').addEventListener('click', e => {
+      const b = e.target.closest('[data-dash-todo]');
+      if (!b) return;
+      const x = data.todos.find(i => i.id === b.dataset.dashTodo), t = vandaag();
+      if (x.type === 'herhaal') { x.gedaan = x.gedaan || {}; if (x.gedaan[t]) delete x.gedaan[t]; else x.gedaan[t] = true; }
+      else { x.klaar = !x.klaar; x.klaarOp = x.klaar ? t : null; }
+      bewaar(); teken();
+    });
     document.getElementById('dash-lijst').addEventListener('click', e => {
       const s = e.target.closest('[data-stap]');
       if (!s) return;
@@ -992,8 +1054,8 @@
     }, 1000);
 
     // ---------- Gewoontes (afleren + aanleren) ----------
-    let gwSoort = 'afleren';
-    try { gwSoort = sessionStorage.getItem('pop-gw') || 'afleren'; } catch (e) {}
+    let gwSoort = 'aanleren';
+    try { gwSoort = sessionStorage.getItem('pop-gw') || 'aanleren'; } catch (e) {}
     function tekenGewoontes() {
       document.querySelectorAll('[data-gw]').forEach(b => b.classList.toggle('aan', b.dataset.gw === gwSoort));
       document.querySelectorAll('[data-gw-paneel]').forEach(p => p.style.display = p.dataset.gwPaneel === gwSoort ? '' : 'none');
@@ -1023,7 +1085,7 @@
       document.getElementById('routine-bewerk').style.visibility = stappen.length ? 'visible' : 'hidden';
       document.getElementById('routine-lijst').innerHTML = stappen.length
         ? stappen.map(s => bewerkModus
-            ? `<div class="stap"><span class="tekst">${esc(s.naam)}</span><button class="weg" data-weg="${s.id}">Verwijderen</button></div>`
+            ? `<div class="stap"><input class="stap-naam" data-hernoem="${s.id}" value="${esc(s.naam)}" maxlength="80" aria-label="Naam van de stap" enterkeyhint="done"><button class="weg" data-weg="${s.id}">Verwijderen</button></div>`
             : `<button class="stap ${gedaan[s.id] ? 'aan' : ''}" data-stap="${s.id}"><span class="box">✓</span><span class="tekst">${esc(s.naam)}</span></button>`).join('')
         : `<p class="sub" style="padding:14px 0">Nog geen stappen. Voeg hieronder je eerste stap toe.</p>`;
       document.getElementById('routine-compleet').innerHTML = !bewerkModus && routineCompleet(moment, t) ? '<p class="compleet">✓ Routine compleet!</p>' : '';
@@ -1049,6 +1111,23 @@
         bewaar(); teken();
       }
     });
+    // Naam van een stap aanpassen (opslaan bij elke toetsaanslag, Enter = klaar)
+    document.getElementById('routine-lijst').addEventListener('input', e => {
+      const id = e.target.dataset && e.target.dataset.hernoem;
+      if (!id) return;
+      const st = data.routine[moment].find(x => x.id === id);
+      if (st && e.target.value.trim()) { st.naam = e.target.value.trim(); bewaar(); }
+    });
+    document.getElementById('routine-lijst').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && e.target.dataset && e.target.dataset.hernoem) { e.preventDefault(); e.target.blur(); }
+    });
+    document.getElementById('routine-lijst').addEventListener('focusout', e => {
+      const id = e.target.dataset && e.target.dataset.hernoem;
+      if (!id) return;
+      const st = data.routine[moment].find(x => x.id === id);
+      if (st && !e.target.value.trim()) e.target.value = st.naam;   // lege naam niet toestaan
+    });
+
     document.getElementById('routine-form').addEventListener('submit', e => {
       e.preventDefault();
       const inp = document.getElementById('routine-input');
@@ -1357,9 +1436,14 @@
       if (h.freq === 'week') return 'Elke ' + (h.dagen || []).slice().sort().map(n => WEEKDAGEN[n - 1]).join(', ');
       return `Elke maand op de ${h.dag}e`;
     }
-    let nieuwType = 'eenmalig', nieuwFreq = 'dag', nieuwDagen = [weekdagNr(vandaag())];
+    let nieuwType = 'eenmalig', nieuwFreq = 'dag', nieuwDagen = [weekdagNr(vandaag())], nieuwPrio = 'normaal';
+    const PRIO_ORDE = { hoog: 0, normaal: 1, laag: 2 };
+    const PRIO_NAAM = { hoog: 'Hoog', normaal: 'Normaal', laag: 'Laag' };
+    const prioVan = x => x.prio || 'normaal';
+    const opPrio = (a, b) => PRIO_ORDE[prioVan(a)] - PRIO_ORDE[prioVan(b)];
     function tekenTodoForm() {
       document.querySelectorAll('#todo-type [data-type]').forEach(b => b.classList.toggle('aan', b.dataset.type === nieuwType));
+      document.querySelectorAll('#todo-prio [data-prio]').forEach(b => b.classList.toggle('aan', b.dataset.prio === nieuwPrio));
       document.querySelectorAll('#todo-freq [data-freq]').forEach(b => b.classList.toggle('aan', b.dataset.freq === nieuwFreq));
       document.getElementById('todo-herhaal').style.display = nieuwType === 'herhaal' ? '' : 'none';
       document.getElementById('todo-weekdagen').style.display = nieuwFreq === 'week' ? 'flex' : 'none';
@@ -1373,7 +1457,8 @@
       }
     }
     document.getElementById('todo-form').addEventListener('click', e => {
-      const t = e.target.closest('[data-type]'), f = e.target.closest('[data-freq]'), w = e.target.closest('[data-wd]');
+      const t = e.target.closest('[data-type]'), f = e.target.closest('[data-freq]'), w = e.target.closest('[data-wd]'), pr = e.target.closest('[data-prio]');
+      if (pr) { nieuwPrio = pr.dataset.prio; tekenTodoForm(); }
       if (t) nieuwType = t.dataset.type;
       if (f) nieuwFreq = f.dataset.freq;
       if (w) { const n = +w.dataset.wd; nieuwDagen = nieuwDagen.includes(n) ? nieuwDagen.filter(x => x !== n) : [...nieuwDagen, n]; }
@@ -1384,14 +1469,15 @@
       const t = vandaag();
       const enkel = data.todos.filter(x => x.type !== 'herhaal');
       const herhaal = data.todos.filter(x => x.type === 'herhaal');
-      const open = enkel.filter(x => !x.klaar);
+      const open = enkel.filter(x => !x.klaar).sort(opPrio);
       const klaar = enkel.filter(x => x.klaar).sort((a, b) => (b.klaarOp || '').localeCompare(a.klaarOp || ''));
-      const nu = herhaal.filter(x => isVandaagAanDeBeurt(x, t));
+      const nu = herhaal.filter(x => isVandaagAanDeBeurt(x, t)).sort(opPrio);
       const later = herhaal.filter(x => !isVandaagAanDeBeurt(x, t))
         .map(x => ({ x, v: volgendeKeer(x) })).sort((a, b) => (a.v || '9').localeCompare(b.v || '9'));
       const rij = (x, gedaan, meta, later) => `<div class="todo ${gedaan ? 'klaar' : ''}">
           ${later ? '<span class="box later" aria-hidden="true">↻</span>' : `<button class="box" data-todo-vink="${x.id}" aria-label="Afvinken">✓</button>`}
           <button class="tekst" ${later ? '' : `data-todo-vink="${x.id}"`}>${esc(x.tekst)}${meta ? `<span class="meta">${meta}</span>` : ''}</button>
+          ${gedaan ? '' : `<button class="prio ${prioVan(x)}" data-todo-prio="${x.id}" aria-label="Prioriteit wijzigen">${PRIO_NAAM[prioVan(x)]}</button>`}
           <button class="weg" data-todo-weg="${x.id}" aria-label="Verwijderen">✕</button>
         </div>`;
       const blok = (titel, rijen, extra = '') => rijen.length
@@ -1417,13 +1503,18 @@
         const herhaal = { freq: nieuwFreq };
         if (nieuwFreq === 'week') herhaal.dagen = nieuwDagen.slice().sort();
         if (nieuwFreq === 'maand') herhaal.dag = +document.getElementById('todo-dag').value;
-        data.todos.unshift({ id: nieuwId(), tekst, type: 'herhaal', herhaal, gedaan: {}, gemaakt: vandaag() });
-      } else data.todos.unshift({ id: nieuwId(), tekst, type: 'eenmalig', klaar: false, gemaakt: vandaag(), klaarOp: null });
+        data.todos.unshift({ id: nieuwId(), tekst, type: 'herhaal', herhaal, prio: nieuwPrio, gedaan: {}, gemaakt: vandaag() });
+      } else data.todos.unshift({ id: nieuwId(), tekst, type: 'eenmalig', prio: nieuwPrio, klaar: false, gemaakt: vandaag(), klaarOp: null });
       inp.value = ''; bewaar(); teken();
     });
     document.getElementById('todo-lijst').addEventListener('click', e => {
-      const v = e.target.closest('[data-todo-vink]'), w = e.target.closest('[data-todo-weg]');
+      const v = e.target.closest('[data-todo-vink]'), w = e.target.closest('[data-todo-weg]'), pr = e.target.closest('[data-todo-prio]');
       let veranderd = false;
+      if (pr) {   // tik op label: Normaal → Hoog → Laag → Normaal
+        const x = data.todos.find(i => i.id === pr.dataset.todoPrio);
+        x.prio = { normaal: 'hoog', hoog: 'laag', laag: 'normaal' }[prioVan(x)];
+        bewaar(); teken(); return;
+      }
       if (v) {
         const x = data.todos.find(i => i.id === v.dataset.todoVink), t = vandaag();
         if (x.type === 'herhaal') {
