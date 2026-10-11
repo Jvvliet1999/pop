@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f2a44">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="POP">
+  <title>Persoonlijk ontwikkelplan</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    :root {
+      --bg: #f6f5f1;
+      --surface: #ffffff;
+      --text: #1d2230;
+      --muted: #7a7f8c;
+      --line: #e6e3db;
+      --accent: #1f2a44;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #12151c;
+        --surface: #1b2029;
+        --text: #eceae4;
+        --muted: #8d93a1;
+        --line: #2a303b;
+        --accent: #c9d3ea;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: calc(env(safe-area-inset-top) + 24px) 20px 16px;
+    }
+    .datum {
+      font-size: 13px;
+      color: var(--muted);
+      text-transform: capitalize;
+      letter-spacing: .02em;
+    }
+    h1 {
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -.02em;
+      margin-top: 4px;
+    }
+    main {
+      flex: 1;
+      padding: 0 20px calc(env(safe-area-inset-bottom) + 24px);
+      max-width: 640px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .leeg {
+      margin-top: 24px;
+      border: 1.5px dashed var(--line);
+      border-radius: 16px;
+      padding: 48px 24px;
+      text-align: center;
+      color: var(--muted);
+      background: var(--surface);
+    }
+    .leeg strong {
+      display: block;
+      color: var(--text);
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+    .leeg p { font-size: 14px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="datum" id="datum"></div>
+    <h1>Overzicht</h1>
+  </header>
+
+  <main id="overzicht">
+    <div class="leeg">
+      <strong>Nog niets hier</strong>
+      <p>Dit overzicht vult zich zodra we onderdelen toevoegen.</p>
+    </div>
+  </main>
+
+  <script>
+    // Datum bovenaan
+    document.getElementById('datum').textContent =
+      new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
+
+    // Offline-ondersteuning (werkt via https of localhost)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
