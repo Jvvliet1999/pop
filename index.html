@@ -92,6 +92,8 @@
       background: var(--surface); border: 1px solid var(--line);
       display: grid; place-items: center; font-size: 19px; margin-bottom: 2px;
     }
+    .kop-knoppen { display: flex; gap: 8px; }
+    #settings-knop.aan { background: var(--accent); border-color: var(--accent); }
     .datum { font-size: 13px; color: var(--muted); letter-spacing: .02em; }
     .datum::first-letter { text-transform: uppercase; }
     h1 { font-size: 28px; font-weight: 700; letter-spacing: -.02em; margin-top: 2px; }
@@ -224,17 +226,40 @@
     .klok-tijd { font-size: 38px; font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
     .klok-plaats { font-size: 13px; font-weight: 600; opacity: .8; }
 
+    /* Bibliotheek */
+    .bieb-groep { display: flex; align-items: baseline; justify-content: space-between; }
+    .item { display: flex; gap: 12px; align-items: flex-start; padding: 13px 0; border-bottom: 1px solid var(--line); }
+    .item:last-child { border-bottom: none; }
+    .omslag {
+      width: 40px; height: 54px; border-radius: 6px; flex: none;
+      display: grid; place-items: center; font-size: 18px; font-weight: 700; color: #fff;
+    }
+    .omslag.audio { height: 40px; border-radius: 50%; }
+    .item-info { flex: 1; min-width: 0; }
+    .item-titel { font-weight: 600; overflow-wrap: anywhere; }
+    .item-link { font-size: 13px; color: var(--moon); text-decoration: none; font-weight: 600; }
+    .item-acties { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .status {
+      font-size: 12px; font-weight: 650; padding: 5px 10px; border-radius: 999px; white-space: nowrap;
+      background: var(--line); color: var(--text);
+    }
+    .status.bezig { background: var(--sun-soft); color: var(--sun); }
+    .status.klaar { background: var(--good-soft); color: var(--good); }
+    .blad select {
+      width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); font: inherit; color: inherit;
+    }
+
     /* Navigatie */
     nav {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
       background: var(--surface); border-top: 1px solid var(--line);
-      padding: 6px 8px calc(env(safe-area-inset-bottom) + 6px);
+      padding: 6px 4px calc(env(safe-area-inset-bottom) + 6px);
       display: flex; justify-content: center;
     }
-    nav .wrap { display: flex; width: 100%; max-width: 640px; }
+    nav .wrap { display: flex; width: 100%; max-width: 640px; gap: 2px; }
     nav button {
       flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
-      padding: 6px 0; font-size: 10.5px; color: var(--muted); font-weight: 600; min-width: 0;
+      padding: 6px 0; font-size: 10px; letter-spacing: -.01em; color: var(--muted); font-weight: 600; min-width: 0; white-space: nowrap;
     }
     nav button .ni { font-size: 20px; line-height: 1.2; filter: grayscale(1); opacity: .6; }
     nav button.aan { color: var(--text); }
@@ -262,7 +287,10 @@
       <div class="datum" id="datum"></div>
       <h1 id="titel">Dashboard</h1>
     </div>
-    <button class="thema-knop" id="thema-knop" aria-label="Wissel tussen licht en donker">🌙</button>
+    <div class="kop-knoppen">
+      <button class="thema-knop" id="thema-knop" aria-label="Wissel tussen licht en donker">🌙</button>
+      <button class="thema-knop" data-ga="settings" id="settings-knop" aria-label="Settings">⚙️</button>
+    </div>
   </header>
 
   <main>
@@ -271,7 +299,7 @@
       <div class="welkom" id="welkom">
         <div class="welkom-emoji" id="welkom-emoji">☀️</div>
         <div class="welkom-groet" id="welkom-groet">Welkom</div>
-        <p class="welkom-zin" id="welkom-zin"></p>
+        <p class="welkom-zin" id="welkom-zin" lang="en"></p>
         <p class="welkom-bron" id="welkom-bron"></p>
         <div class="klok">
           <div class="klok-tijd" id="klok-tijd">--:--:--</div>
@@ -307,6 +335,16 @@
         <div id="ov-routine"></div>
       </button>
 
+    </section>
+
+    <!-- BIBLIOTHEEK -->
+    <section data-view="bibliotheek">
+      <div class="tabs">
+        <button data-bieb="boeken">📚 Boeken</button>
+        <button data-bieb="audio">🎧 Audio</button>
+      </div>
+      <div id="bieb-lijst"></div>
+      <button class="knop breed" id="bieb-nieuw"></button>
     </section>
 
     <!-- SETTINGS -->
@@ -367,7 +405,7 @@
       <button data-ga="afleren"><span class="ni">🚫</span>Afleren</button>
       <button data-ga="aanleren"><span class="ni">🌱</span>Aanleren</button>
       <button data-ga="routine"><span class="ni">☀️</span>Routine</button>
-      <button data-ga="settings"><span class="ni">⚙️</span>Settings</button>
+      <button data-ga="bibliotheek"><span class="ni">📚</span>Bibliotheek</button>
     </div>
   </nav>
 
@@ -389,6 +427,26 @@
     </form>
   </div>
 
+  <!-- Invoerblad bibliotheek -->
+  <div class="scherm" id="scherm-bieb">
+    <form class="blad" id="blad-bieb">
+      <h3 id="bieb-titel-kop"></h3>
+      <label for="bieb-titel">Titel</label>
+      <input id="bieb-titel" required autocomplete="off" maxlength="120">
+      <label for="bieb-maker" id="bieb-maker-label">Auteur</label>
+      <input id="bieb-maker" autocomplete="off" maxlength="80">
+      <label for="bieb-status">Status</label>
+      <select id="bieb-status"></select>
+      <label for="bieb-link">Link (optioneel)</label>
+      <input id="bieb-link" type="text" inputmode="url" autocapitalize="off" autocomplete="off" placeholder="https://">
+      <div class="rij">
+        <button type="button" class="knop rood" id="bieb-verwijder">Verwijderen</button>
+        <button type="button" class="knop zacht" id="bieb-annuleer">Annuleren</button>
+        <button type="submit" class="knop">Opslaan</button>
+      </div>
+    </form>
+  </div>
+
   <script>
   (() => {
     // ---------- Opslag (alleen op dit apparaat) ----------
@@ -397,7 +455,8 @@
       afleren: [],                         // {id, naam, start, terugvallen: [datum]}
       aanleren: [],                        // {id, naam, gedaan: {datum: true}}
       routine: { ochtend: [], avond: [] }, // {id, naam}
-      routineGedaan: {}                    // {datum: {stapId: true}}
+      routineGedaan: {},                   // {datum: {stapId: true}}
+      bibliotheek: { boeken: [], audio: [] } // {id, titel, maker, status: wil|bezig|klaar, link, klaarOp}
     });
     let data = leegData();
     try {
@@ -445,12 +504,12 @@
     };
 
     // ---------- Navigatie ----------
-    const titels = { dashboard: 'Dashboard', overzicht: 'Overzicht', afleren: 'Afleren', aanleren: 'Aanleren', routine: 'Routine', settings: 'Settings' };
+    const titels = { dashboard: 'Dashboard', overzicht: 'Overzicht', afleren: 'Afleren', aanleren: 'Aanleren', routine: 'Routine', bibliotheek: 'Bibliotheek', settings: 'Settings' };
     let huidig = 'dashboard';
     function ga(view) {
       huidig = view;
       document.querySelectorAll('section[data-view]').forEach(s => s.classList.toggle('actief', s.dataset.view === view));
-      document.querySelectorAll('nav button').forEach(b => b.classList.toggle('aan', b.dataset.ga === view));
+      document.querySelectorAll('nav button, #settings-knop').forEach(b => b.classList.toggle('aan', b.dataset.ga === view));
       document.getElementById('titel').textContent = titels[view];
       try { sessionStorage.setItem('pop-view', view); } catch (e) {}
       window.scrollTo(0, 0);
@@ -575,34 +634,34 @@
     const routineDag = m => (m === 'avond' && amsterdam().u < 6) ? plusDagen(vandaag(), -1) : vandaag();
 
     // ---------- Dashboard ----------
-    // Eigen Nederlandse vertalingen van klassieke teksten
+    // Klassieke teksten in het Engels (o.b.v. publiek-domein vertalingen: Long, Gummere)
     const zinnen = {
       ochtend: [
-        ['Als je \'s ochtends moeite hebt met opstaan, zeg dan tegen jezelf: ik sta op om het werk van een mens te doen.', 'Marcus Aurelius, Meditaties 5.1'],
-        ['Verspil geen tijd meer aan discussiëren over wat een goed mens is. Wees er een.', 'Marcus Aurelius, Meditaties 10.16'],
-        ['Zeg eerst tegen jezelf wat je wilt zijn, en doe dan wat je moet doen.', 'Epictetus, Gesprekken 3.23'],
-        ['Terwijl we uitstellen, snelt het leven voorbij.', 'Seneca, Brieven aan Lucilius 1'],
-        ['Ken uzelf.', 'Inscriptie, tempel van Apollo in Delphi'],
-        ['Niets groots ontstaat plotseling, zelfs een druiventros of een vijg niet.', 'Epictetus, Gesprekken 1.15'],
-        ['Het universum is verandering; ons leven is wat onze gedachten ervan maken.', 'Marcus Aurelius, Meditaties 4.3']
+        ['In the morning when you rise unwillingly, let this thought be present: I am rising to the work of a human being.', 'Marcus Aurelius, Meditations 5.1'],
+        ['No longer talk at all about the kind of man that a good man ought to be, but be such.', 'Marcus Aurelius, Meditations 10.16'],
+        ['First say to yourself what you would be; and then do what you have to do.', 'Epictetus, Discourses 3.23'],
+        ['While we are postponing, life speeds by.', 'Seneca, Letters to Lucilius 1'],
+        ['Know thyself.', 'Inscription at the Temple of Apollo, Delphi'],
+        ['No great thing is created suddenly, any more than a bunch of grapes or a fig.', 'Epictetus, Discourses 1.15'],
+        ['The universe is transformation: life is opinion.', 'Marcus Aurelius, Meditations 4.3']
       ],
       middag: [
-        ['Sommige dingen liggen in onze macht, andere niet.', 'Epictetus, Handboekje 1'],
-        ['Niet de dingen zelf verontrusten mensen, maar hun oordelen over die dingen.', 'Epictetus, Handboekje 5'],
-        ['We lijden vaker in onze verbeelding dan in de werkelijkheid.', 'Seneca, Brieven aan Lucilius 13'],
-        ['Het is niet dat we weinig tijd hebben, maar dat we er veel van verspillen.', 'Seneca, Over de kortheid van het leven 1'],
-        ['Elke gewoonte en elk vermogen wordt versterkt door de daden die erbij horen.', 'Epictetus, Gesprekken 2.18'],
-        ['Niets te veel.', 'Inscriptie, tempel van Apollo in Delphi'],
-        ['Odysseus liet zich aan de mast binden om het lied van de sirenen te weerstaan. Bind jezelf aan je voornemens.', 'Les uit de Odyssee van Homerus']
+        ['Some things are in our control and others not.', 'Epictetus, Enchiridion 1'],
+        ['Men are disturbed not by the things which happen, but by the opinions about the things.', 'Epictetus, Enchiridion 5'],
+        ['We suffer more often in imagination than in reality.', 'Seneca, Letters to Lucilius 13'],
+        ['It is not that we have a short time to live, but that we waste a lot of it.', 'Seneca, On the Shortness of Life 1'],
+        ['Every habit and faculty is maintained and increased by the corresponding actions.', 'Epictetus, Discourses 2.18'],
+        ['Nothing in excess.', 'Inscription at the Temple of Apollo, Delphi'],
+        ['Odysseus had himself bound to the mast to resist the song of the Sirens. Bind yourself to your intentions.', 'Lesson from Homer\'s Odyssey']
       ],
       avond: [
-        ['Ik onderzoek mijn hele dag en ga na wat ik heb gedaan en gezegd.', 'Seneca, Over woede 3.36'],
-        ['Zoals je gedachten gewoonlijk zijn, zo wordt je geest; want de ziel wordt gekleurd door haar gedachten.', 'Marcus Aurelius, Meditaties 5.16'],
-        ['Kijk naar binnen. Daar is de bron van het goede, en die blijft opborrelen zolang je blijft graven.', 'Marcus Aurelius, Meditaties 7.59'],
-        ['De beste wraak is niet te worden zoals degene die je onrecht deed.', 'Marcus Aurelius, Meditaties 6.6'],
-        ['Wees als de rots waar de golven steeds tegenaan slaan: hij blijft staan, en het water rondom komt tot rust.', 'Marcus Aurelius, Meditaties 4.49'],
-        ['Toen Pandora de kruik had geopend en alle kwaad was ontsnapt, bleef er één ding achter: de hoop.', 'Mythe van Pandora, naar Hesiodus'],
-        ['Doe elke handeling alsof het de laatste van je leven is.', 'Marcus Aurelius, Meditaties 2.5']
+        ['I examine my entire day and go back over what I have done and said.', 'Seneca, On Anger 3.36'],
+        ['Such as are your habitual thoughts, such also will be the character of your mind; for the soul is dyed by the thoughts.', 'Marcus Aurelius, Meditations 5.16'],
+        ['Look within. Within is the fountain of good, and it will ever bubble up, if you will ever dig.', 'Marcus Aurelius, Meditations 7.59'],
+        ['The best way of avenging yourself is not to become like the wrongdoer.', 'Marcus Aurelius, Meditations 6.6'],
+        ['Be like the promontory against which the waves continually break; it stands firm and tames the fury of the water around it.', 'Marcus Aurelius, Meditations 4.49'],
+        ['When Pandora opened the jar and every evil escaped into the world, one thing remained inside: hope.', 'Myth of Pandora, after Hesiod'],
+        ['Do every act of your life as if it were the last.', 'Marcus Aurelius, Meditations 2.5']
       ]
     };
     function groet(u) {
@@ -783,6 +842,107 @@
       } catch (err) { alert('Dit bestand is geen geldige POP-back-up.'); }
     });
 
+    // ---------- Bibliotheek ----------
+    const BIEB = {
+      boeken: { enkel: 'Boek', maker: 'Auteur', icoon: '📚', status: { wil: 'Wil ik lezen', bezig: 'Aan het lezen', klaar: 'Gelezen' },
+                leeg: 'Voeg een boek toe dat je wilt lezen, aan het lezen bent of al gelezen hebt.' },
+      audio:  { enkel: 'Audio', maker: 'Maker / spreker', icoon: '🎧', status: { wil: 'Wil ik luisteren', bezig: 'Aan het luisteren', klaar: 'Geluisterd' },
+                leeg: 'Voeg een luisterboek of podcast toe. Met een link open je hem direct vanuit de app.' }
+    };
+    const kleuren = ['#c0674f', '#4b5fa8', '#2f8a4a', '#8a5aa8', '#d48a1c', '#3d8a96', '#a8506e'];
+    const kleurVoor = t => kleuren[[...t].reduce((a, c) => a + c.charCodeAt(0), 0) % kleuren.length];
+    let biebSoort = 'boeken';
+    const veiligeLink = l => /^https?:\/\//i.test(l || '') ? l : '';
+    function tekenBibliotheek() {
+      const cfg = BIEB[biebSoort], lijst = data.bibliotheek[biebSoort];
+      document.querySelectorAll('[data-bieb]').forEach(b => b.classList.toggle('aan', b.dataset.bieb === biebSoort));
+      document.getElementById('bieb-nieuw').textContent = `＋ ${cfg.enkel} toevoegen`;
+      const el = document.getElementById('bieb-lijst');
+      if (!lijst.length) {
+        el.innerHTML = `<div class="leeg"><strong>Nog leeg</strong>${cfg.leeg}</div>`;
+        return;
+      }
+      el.innerHTML = ['bezig', 'wil', 'klaar'].map(st => {
+        const items = lijst.filter(x => x.status === st);
+        if (!items.length) return '';
+        return `<div class="label bieb-groep"><span>${cfg.status[st]}</span><span>${items.length}</span></div>
+          <div class="kaart" style="padding-top:4px;padding-bottom:4px">${items.map(x => {
+            const link = veiligeLink(x.link);
+            return `<div class="item">
+              <div class="omslag ${biebSoort === 'audio' ? 'audio' : ''}" style="background:${kleurVoor(x.titel)}">${esc(x.titel.trim()[0] || '?').toUpperCase()}</div>
+              <div class="item-info">
+                <div class="item-titel">${esc(x.titel)}</div>
+                ${x.maker ? `<div class="sub">${esc(x.maker)}</div>` : ''}
+                ${link ? `<a class="item-link" href="${esc(link)}" target="_blank" rel="noopener">${biebSoort === 'audio' ? '▶ Luisteren' : '↗ Openen'}</a>` : ''}
+              </div>
+              <div class="item-acties">
+                <button class="status ${x.status}" data-status="${x.id}">${cfg.status[x.status]}</button>
+                <button class="tekstknop" data-bieb-bewerk="${x.id}">Bewerken</button>
+              </div>
+            </div>`;
+          }).join('')}</div>`;
+      }).join('');
+    }
+    document.querySelector('[data-view=bibliotheek] .tabs').addEventListener('click', e => {
+      const b = e.target.closest('[data-bieb]');
+      if (b) { biebSoort = b.dataset.bieb; teken(); }
+    });
+    document.getElementById('bieb-lijst').addEventListener('click', e => {
+      const st = e.target.closest('[data-status]'), bw = e.target.closest('[data-bieb-bewerk]');
+      if (st) {   // tik op status: wil → bezig → klaar → wil
+        const x = data.bibliotheek[biebSoort].find(i => i.id === st.dataset.status);
+        x.status = { wil: 'bezig', bezig: 'klaar', klaar: 'wil' }[x.status];
+        x.klaarOp = x.status === 'klaar' ? vandaag() : null;
+        bewaar(); teken();
+      }
+      if (bw) openBieb(bw.dataset.biebBewerk);
+    });
+    const schermBieb = document.getElementById('scherm-bieb');
+    let biebId = null;
+    function openBieb(id) {
+      biebId = id || null;
+      const cfg = BIEB[biebSoort];
+      const x = id ? data.bibliotheek[biebSoort].find(i => i.id === id) : null;
+      document.getElementById('bieb-titel-kop').textContent = (x ? 'Bewerken: ' : 'Nieuw: ') + cfg.enkel.toLowerCase();
+      document.getElementById('bieb-maker-label').textContent = cfg.maker;
+      document.getElementById('bieb-titel').value = x ? x.titel : '';
+      document.getElementById('bieb-maker').value = x ? x.maker || '' : '';
+      document.getElementById('bieb-link').value = x ? x.link || '' : '';
+      document.getElementById('bieb-status').innerHTML = Object.entries(cfg.status)
+        .map(([k, v]) => `<option value="${k}" ${(x ? x.status : 'wil') === k ? 'selected' : ''}>${v}</option>`).join('');
+      document.getElementById('bieb-verwijder').style.display = x ? 'inline-flex' : 'none';
+      schermBieb.classList.add('open');
+      setTimeout(() => document.getElementById('bieb-titel').focus(), 50);
+    }
+    const sluitBieb = () => schermBieb.classList.remove('open');
+    document.getElementById('bieb-nieuw').addEventListener('click', () => openBieb());
+    document.getElementById('bieb-annuleer').addEventListener('click', sluitBieb);
+    schermBieb.addEventListener('click', e => { if (e.target === schermBieb) sluitBieb(); });
+    document.getElementById('blad-bieb').addEventListener('submit', e => {
+      e.preventDefault();
+      const titel = document.getElementById('bieb-titel').value.trim();
+      if (!titel) return;
+      let link = document.getElementById('bieb-link').value.trim();
+      if (link && !/^https?:\/\//i.test(link)) link = 'https://' + link;
+      const velden = { titel, maker: document.getElementById('bieb-maker').value.trim(),
+                       status: document.getElementById('bieb-status').value, link };
+      const lijst = data.bibliotheek[biebSoort];
+      const x = biebId ? lijst.find(i => i.id === biebId) : null;
+      if (x) {
+        if (velden.status === 'klaar' && x.status !== 'klaar') velden.klaarOp = vandaag();
+        if (velden.status !== 'klaar') velden.klaarOp = null;
+        Object.assign(x, velden);
+      } else lijst.push({ id: nieuwId(), ...velden, klaarOp: velden.status === 'klaar' ? vandaag() : null });
+      bewaar(); sluitBieb(); teken();
+    });
+    document.getElementById('bieb-verwijder').addEventListener('click', () => {
+      const x = data.bibliotheek[biebSoort].find(i => i.id === biebId);
+      if (x && confirm(`"${x.titel}" verwijderen?`)) {
+        data.bibliotheek[biebSoort] = data.bibliotheek[biebSoort].filter(i => i.id !== biebId);
+        bewaar(); sluitBieb(); teken();
+      }
+    });
+
     // ---------- Licht / donker ----------
     const donkerSysteem = window.matchMedia('(prefers-color-scheme: dark)');
     const isDonker = () => document.documentElement.dataset.theme
@@ -810,6 +970,7 @@
       if (huidig === 'afleren') tekenAfleren();
       if (huidig === 'aanleren') tekenAanleren();
       if (huidig === 'routine') tekenRoutine();
+      if (huidig === 'bibliotheek') tekenBibliotheek();
     }
     // Nieuwe dag? Opnieuw tekenen wanneer je de app weer opent.
     document.addEventListener('visibilitychange', () => { if (!document.hidden) teken(); });
