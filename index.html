@@ -339,6 +339,18 @@
     .todo.klaar .tekst { color: var(--muted); text-decoration: line-through; }
     .todo .weg { color: var(--muted); font-size: 18px; padding: 2px 8px; }
 
+    .tabs.klein { margin-top: 10px; background: var(--bg); }
+    .tabs.klein button { padding: 7px; font-size: 13.5px; }
+    .chips { display: flex; gap: 5px; margin-top: 10px; }
+    .chips button { flex: 1; padding: 8px 0; border-radius: 10px; border: 1px solid var(--line); background: var(--bg);
+      font-size: 13px; font-weight: 650; color: var(--muted); }
+    .chips button.aan { background: var(--good); border-color: var(--good); color: var(--on-accent); }
+    .maanddag { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+    .maanddag select { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); font: inherit; color: inherit; }
+    .todo .box.later { border: none; color: var(--muted); font-size: 18px; font-weight: 700; }
+    .todo .meta { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .todo .herhaal-icoon { font-size: 12px; color: var(--good); font-weight: 700; }
+
     /* Reflectie */
     .dagen { display: flex; gap: 6px; margin-top: 4px; }
     .dagknop { flex: 1; padding: 8px 0 7px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line);
@@ -366,6 +378,28 @@
     .archief-item .kop span:first-child::first-letter { text-transform: uppercase; }
     .archief-item p { font-size: 14px; color: var(--muted); margin-top: 6px; line-height: 1.4;
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+    /* Beveiligingscode */
+    .slot { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center;
+      background: linear-gradient(180deg, var(--bg-top), var(--bg)); }
+    .slot[hidden] { display: none; }
+    body.op-slot main, body.op-slot nav, body.op-slot header { visibility: hidden; }
+    .slot-binnen { width: 100%; max-width: 320px; padding: 24px; text-align: center; }
+    .slot-logo { width: 64px; height: 64px; border-radius: 18px; margin: 0 auto; display: grid; place-items: center;
+      background: var(--accent); color: var(--on-accent); font-weight: 800; letter-spacing: .04em; }
+    .slot-titel { margin-top: 18px; font-size: 18px; font-weight: 650; }
+    .slot-bolletjes { display: flex; justify-content: center; gap: 16px; margin-top: 18px; }
+    .slot-bolletjes i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--accent); }
+    .slot-bolletjes i.vol { background: var(--accent); }
+    .slot-bolletjes.fout { animation: schud .35s; }
+    @keyframes schud { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+    .slot-melding { min-height: 20px; margin-top: 10px; font-size: 13px; color: var(--bad); }
+    .slot-toetsen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 8px; }
+    .slot-toetsen button { height: 64px; border-radius: 50%; width: 64px; margin: 0 auto; font-size: 24px; font-weight: 600;
+      background: var(--surface-solid); border: 1px solid var(--line); }
+    .slot-toetsen button:active { background: var(--line); }
+    .slot-toetsen .leeg-toets { background: none; border: none; font-size: 13px; color: var(--muted); }
+    #slot-onder { margin-top: 16px; }
 
     /* Navigatie */
     nav {
@@ -442,9 +476,27 @@
 
     <!-- TO DO LIST -->
     <section data-view="todo">
-      <form class="toevoegen" id="todo-form" style="margin-top:4px">
-        <input id="todo-input" placeholder="Nieuwe taak…" autocomplete="off" enterkeyhint="done" maxlength="140">
-        <button class="knop" type="submit">＋</button>
+      <form class="kaart" id="todo-form" style="margin-top:4px">
+        <div class="toevoegen" style="margin-top:0">
+          <input id="todo-input" placeholder="Nieuwe taak…" autocomplete="off" enterkeyhint="done" maxlength="140">
+          <button class="knop" type="submit">＋</button>
+        </div>
+        <div class="tabs klein" id="todo-type">
+          <button type="button" data-type="eenmalig" class="aan">Eenmalig</button>
+          <button type="button" data-type="herhaal">Terugkerend</button>
+        </div>
+        <div id="todo-herhaal" style="display:none">
+          <div class="tabs klein" id="todo-freq">
+            <button type="button" data-freq="dag" class="aan">Dagelijks</button>
+            <button type="button" data-freq="week">Wekelijks</button>
+            <button type="button" data-freq="maand">Maandelijks</button>
+          </div>
+          <div class="chips" id="todo-weekdagen" style="display:none"></div>
+          <div id="todo-maanddag" style="display:none" class="maanddag">
+            <span class="sub">Elke maand op dag</span>
+            <select id="todo-dag"></select>
+          </div>
+        </div>
       </form>
       <div id="todo-lijst"></div>
     </section>
@@ -479,7 +531,12 @@
 
     <!-- SETTINGS -->
     <section data-view="settings">
-      <div class="label" style="margin-top:12px">Back-up</div>
+      <div class="label" style="margin-top:12px">Beveiligingscode</div>
+      <div class="kaart">
+        <p class="sub" id="pin-status"></p>
+        <div class="acties" id="pin-acties"></div>
+      </div>
+      <div class="label">Back-up</div>
       <div class="kaart">
         <p class="sub">Je gegevens staan alleen op dit apparaat. Maak af en toe een back-up, zodat je niets kwijtraakt bij een nieuwe telefoon.</p>
         <div class="acties">
@@ -542,6 +599,23 @@
       <button data-ga="todo"><span class="ni">✅</span>To do list</button>
     </div>
   </nav>
+
+  <!-- Beveiligingscode -->
+  <div class="slot" id="slot" hidden>
+    <div class="slot-binnen">
+      <div class="slot-logo">POP</div>
+      <p class="slot-titel" id="slot-titel">Voer je code in</p>
+      <div class="slot-bolletjes" id="slot-bolletjes"><i></i><i></i><i></i><i></i></div>
+      <p class="slot-melding" id="slot-melding"></p>
+      <div class="slot-toetsen" id="slot-toetsen">
+        <button data-cijfer="1">1</button><button data-cijfer="2">2</button><button data-cijfer="3">3</button>
+        <button data-cijfer="4">4</button><button data-cijfer="5">5</button><button data-cijfer="6">6</button>
+        <button data-cijfer="7">7</button><button data-cijfer="8">8</button><button data-cijfer="9">9</button>
+        <button class="leeg-toets" id="slot-links"></button><button data-cijfer="0">0</button><button data-wis aria-label="Wissen">⌫</button>
+      </div>
+      <button class="tekstknop" id="slot-onder"></button>
+    </div>
+  </div>
 
   <!-- Invoerblad voor toevoegen/bewerken -->
   <div class="scherm" id="scherm">
@@ -1261,36 +1335,114 @@
       }
     });
 
-    // ---------- To do list ----------
+    // ---------- To do list (eenmalig + terugkerend) ----------
+    const WEEKDAGEN = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
+    const weekdagNr = d => (naarDatum(d).getDay() + 6) % 7 + 1;            // 1 = ma … 7 = zo
+    function isVandaagAanDeBeurt(x, d) {
+      const h = x.herhaal || {};
+      if (h.freq === 'dag') return true;
+      if (h.freq === 'week') return (h.dagen || []).includes(weekdagNr(d));
+      if (h.freq === 'maand') {
+        const dt = naarDatum(d), laatste = new Date(dt.getFullYear(), dt.getMonth() + 1, 0).getDate();
+        return dt.getDate() === Math.min(h.dag || 1, laatste);
+      }
+      return false;
+    }
+    function volgendeKeer(x) {
+      for (let i = 1; i <= 62; i++) { const d = plusDagen(vandaag(), i); if (isVandaagAanDeBeurt(x, d)) return d; }
+      return null;
+    }
+    function herhaalTekst(h) {
+      if (h.freq === 'dag') return 'Elke dag';
+      if (h.freq === 'week') return 'Elke ' + (h.dagen || []).slice().sort().map(n => WEEKDAGEN[n - 1]).join(', ');
+      return `Elke maand op de ${h.dag}e`;
+    }
+    let nieuwType = 'eenmalig', nieuwFreq = 'dag', nieuwDagen = [weekdagNr(vandaag())];
+    function tekenTodoForm() {
+      document.querySelectorAll('#todo-type [data-type]').forEach(b => b.classList.toggle('aan', b.dataset.type === nieuwType));
+      document.querySelectorAll('#todo-freq [data-freq]').forEach(b => b.classList.toggle('aan', b.dataset.freq === nieuwFreq));
+      document.getElementById('todo-herhaal').style.display = nieuwType === 'herhaal' ? '' : 'none';
+      document.getElementById('todo-weekdagen').style.display = nieuwFreq === 'week' ? 'flex' : 'none';
+      document.getElementById('todo-maanddag').style.display = nieuwFreq === 'maand' ? 'flex' : 'none';
+      document.getElementById('todo-weekdagen').innerHTML = WEEKDAGEN.map((w, i) =>
+        `<button type="button" data-wd="${i + 1}" class="${nieuwDagen.includes(i + 1) ? 'aan' : ''}">${w}</button>`).join('');
+      const sel = document.getElementById('todo-dag');
+      if (!sel.options.length) {
+        sel.innerHTML = Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
+        sel.value = String(naarDatum(vandaag()).getDate());
+      }
+    }
+    document.getElementById('todo-form').addEventListener('click', e => {
+      const t = e.target.closest('[data-type]'), f = e.target.closest('[data-freq]'), w = e.target.closest('[data-wd]');
+      if (t) nieuwType = t.dataset.type;
+      if (f) nieuwFreq = f.dataset.freq;
+      if (w) { const n = +w.dataset.wd; nieuwDagen = nieuwDagen.includes(n) ? nieuwDagen.filter(x => x !== n) : [...nieuwDagen, n]; }
+      if (t || f || w) tekenTodoForm();
+    });
     function tekenTodo() {
-      const open = data.todos.filter(x => !x.klaar), klaar = data.todos.filter(x => x.klaar)
-        .sort((a, b) => (b.klaarOp || '').localeCompare(a.klaarOp || ''));
-      const rij = x => `<div class="todo ${x.klaar ? 'klaar' : ''}">
-          <button class="box" data-todo-vink="${x.id}" aria-label="Afvinken">✓</button>
-          <button class="tekst" data-todo-vink="${x.id}">${esc(x.tekst)}</button>
+      tekenTodoForm();
+      const t = vandaag();
+      const enkel = data.todos.filter(x => x.type !== 'herhaal');
+      const herhaal = data.todos.filter(x => x.type === 'herhaal');
+      const open = enkel.filter(x => !x.klaar);
+      const klaar = enkel.filter(x => x.klaar).sort((a, b) => (b.klaarOp || '').localeCompare(a.klaarOp || ''));
+      const nu = herhaal.filter(x => isVandaagAanDeBeurt(x, t));
+      const later = herhaal.filter(x => !isVandaagAanDeBeurt(x, t))
+        .map(x => ({ x, v: volgendeKeer(x) })).sort((a, b) => (a.v || '9').localeCompare(b.v || '9'));
+      const rij = (x, gedaan, meta, later) => `<div class="todo ${gedaan ? 'klaar' : ''}">
+          ${later ? '<span class="box later" aria-hidden="true">↻</span>' : `<button class="box" data-todo-vink="${x.id}" aria-label="Afvinken">✓</button>`}
+          <button class="tekst" ${later ? '' : `data-todo-vink="${x.id}"`}>${esc(x.tekst)}${meta ? `<span class="meta">${meta}</span>` : ''}</button>
           <button class="weg" data-todo-weg="${x.id}" aria-label="Verwijderen">✕</button>
         </div>`;
-      let html = open.length
-        ? `<div class="kaart" style="padding-top:2px;padding-bottom:2px">${open.map(rij).join('')}</div>`
-        : `<div class="leeg"><strong>${klaar.length ? 'Alles gedaan! 🎉' : 'Nog geen taken'}</strong>${klaar.length ? 'Lekker bezig.' : 'Typ hierboven een taak en tik op ＋.'}</div>`;
-      if (klaar.length) html += `<div class="label bieb-groep"><span>Afgerond</span>
-          <button class="tekstknop" id="todo-wis" style="padding:0">Wis afgeronde (${klaar.length})</button></div>
-        <div class="kaart" style="padding-top:2px;padding-bottom:2px">${klaar.map(rij).join('')}</div>`;
+      const blok = (titel, rijen, extra = '') => rijen.length
+        ? `<div class="label bieb-groep"><span>${titel}</span>${extra || `<span>${rijen.length}</span>`}</div>
+           <div class="kaart" style="padding-top:2px;padding-bottom:2px">${rijen.join('')}</div>` : '';
+      let html = '';
+      html += blok('🔁 Vandaag terugkerend', nu.map(x => rij(x, !!(x.gedaan || {})[t], herhaalTekst(x.herhaal))));
+      html += blok('Eenmalig', open.map(x => rij(x, false, '')));
+      if (!nu.length && !open.length)
+        html += `<div class="leeg"><strong>${data.todos.length ? 'Alles gedaan voor vandaag! 🎉' : 'Nog geen taken'}</strong>${data.todos.length ? 'Lekker bezig.' : 'Typ hierboven een taak, kies Eenmalig of Terugkerend en tik op ＋.'}</div>`;
+      html += blok('Terugkerend — later', later.map(({ x, v }) =>
+        rij(x, false, herhaalTekst(x.herhaal) + (v ? ` · volgende: ${dagNaam(v)} ${naarDatum(v).getDate()}/${naarDatum(v).getMonth() + 1}` : ''), true)));
+      html += blok('Afgerond', klaar.map(x => rij(x, true, '')),
+        `<button class="tekstknop" id="todo-wis" style="padding:0">Wis afgeronde (${klaar.length})</button>`);
       document.getElementById('todo-lijst').innerHTML = html;
     }
     document.getElementById('todo-form').addEventListener('submit', e => {
       e.preventDefault();
       const inp = document.getElementById('todo-input'), tekst = inp.value.trim();
       if (!tekst) return;
-      data.todos.unshift({ id: nieuwId(), tekst, klaar: false, gemaakt: vandaag(), klaarOp: null });
+      if (nieuwType === 'herhaal') {
+        if (nieuwFreq === 'week' && !nieuwDagen.length) { alert('Kies minstens één dag.'); return; }
+        const herhaal = { freq: nieuwFreq };
+        if (nieuwFreq === 'week') herhaal.dagen = nieuwDagen.slice().sort();
+        if (nieuwFreq === 'maand') herhaal.dag = +document.getElementById('todo-dag').value;
+        data.todos.unshift({ id: nieuwId(), tekst, type: 'herhaal', herhaal, gedaan: {}, gemaakt: vandaag() });
+      } else data.todos.unshift({ id: nieuwId(), tekst, type: 'eenmalig', klaar: false, gemaakt: vandaag(), klaarOp: null });
       inp.value = ''; bewaar(); teken();
     });
     document.getElementById('todo-lijst').addEventListener('click', e => {
       const v = e.target.closest('[data-todo-vink]'), w = e.target.closest('[data-todo-weg]');
-      if (v) { const x = data.todos.find(i => i.id === v.dataset.todoVink); x.klaar = !x.klaar; x.klaarOp = x.klaar ? vandaag() : null; }
-      if (w) data.todos = data.todos.filter(i => i.id !== w.dataset.todoWeg);
-      if (e.target.id === 'todo-wis' && confirm('Alle afgeronde taken wissen?')) data.todos = data.todos.filter(i => !i.klaar);
-      if (v || w || e.target.id === 'todo-wis') { bewaar(); teken(); }
+      let veranderd = false;
+      if (v) {
+        const x = data.todos.find(i => i.id === v.dataset.todoVink), t = vandaag();
+        if (x.type === 'herhaal') {
+          if (!isVandaagAanDeBeurt(x, t)) return;
+          x.gedaan = x.gedaan || {};
+          if (x.gedaan[t]) delete x.gedaan[t]; else x.gedaan[t] = true;
+        } else { x.klaar = !x.klaar; x.klaarOp = x.klaar ? t : null; }
+        veranderd = true;
+      }
+      if (w) {
+        const x = data.todos.find(i => i.id === w.dataset.todoWeg);
+        if (x.type !== 'herhaal' || confirm(`Terugkerende taak "${x.tekst}" verwijderen?`)) {
+          data.todos = data.todos.filter(i => i.id !== x.id); veranderd = true;
+        }
+      }
+      if (e.target.id === 'todo-wis' && confirm('Alle afgeronde taken wissen?')) {
+        data.todos = data.todos.filter(i => i.type === 'herhaal' || !i.klaar); veranderd = true;
+      }
+      if (veranderd) { bewaar(); teken(); }
     });
 
     // ---------- Reflectie ----------
@@ -1357,6 +1509,93 @@
       }, 500);
     });
 
+    // ---------- Beveiligingscode ----------
+    const PIN_SLEUTEL = 'pop-pin';
+    const leesPin = () => { try { return JSON.parse(localStorage.getItem(PIN_SLEUTEL)); } catch (e) { return null; } };
+    async function hashPin(pin, salt) {
+      const tekst = salt + ':' + pin;
+      try {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(tekst));
+        return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+      } catch (e) {   // geen crypto beschikbaar: eenvoudige fallback
+        let h = 0; for (const c of tekst) h = (h * 31 + c.charCodeAt(0)) | 0; return 'f' + h;
+      }
+    }
+    const slot = document.getElementById('slot');
+    let slotModus = null, invoer = '', eersteCode = '', verborgenSinds = null;
+    function toonSlot(modus) {
+      slotModus = modus; invoer = ''; eersteCode = '';
+      slot.hidden = false; document.body.classList.add('op-slot');
+      tekenSlot('');
+    }
+    function verbergSlot() { slot.hidden = true; document.body.classList.remove('op-slot'); slotModus = null; teken(); }
+    function tekenSlot(melding) {
+      const titels = { open: 'Voer je code in', nieuw: 'Kies een code van 4 cijfers', bevestig: 'Herhaal je nieuwe code' };
+      document.getElementById('slot-titel').textContent = titels[slotModus];
+      document.querySelectorAll('#slot-bolletjes i').forEach((b, i) => b.classList.toggle('vol', i < invoer.length));
+      document.getElementById('slot-melding').textContent = melding || '';
+      document.getElementById('slot-links').textContent = slotModus === 'open' ? '' : 'Annuleer';
+      document.getElementById('slot-onder').textContent = slotModus === 'open' ? 'Code vergeten?' : '';
+    }
+    function fout(melding) {
+      const b = document.getElementById('slot-bolletjes');
+      b.classList.remove('fout'); void b.offsetWidth; b.classList.add('fout');
+      invoer = ''; tekenSlot(melding);
+    }
+    async function codeKlaar() {
+      if (slotModus === 'open') {
+        const p = leesPin();
+        if (p && await hashPin(invoer, p.salt) === p.hash) verbergSlot(); else fout('Onjuiste code');
+      } else if (slotModus === 'nieuw') {
+        eersteCode = invoer; invoer = ''; slotModus = 'bevestig'; tekenSlot('');
+      } else if (slotModus === 'bevestig') {
+        if (invoer !== eersteCode) { slotModus = 'nieuw'; eersteCode = ''; fout('Codes kwamen niet overeen, probeer opnieuw'); return; }
+        const salt = Math.random().toString(36).slice(2) + Date.now().toString(36);
+        try { localStorage.setItem(PIN_SLEUTEL, JSON.stringify({ salt, hash: await hashPin(invoer, salt) })); } catch (e) {}
+        verbergSlot();
+      }
+    }
+    document.getElementById('slot-toetsen').addEventListener('click', e => {
+      const c = e.target.closest('[data-cijfer]'), w = e.target.closest('[data-wis]');
+      if (e.target.id === 'slot-links' && slotModus !== 'open') { verbergSlot(); return; }
+      if (w) { invoer = invoer.slice(0, -1); tekenSlot(''); return; }
+      if (c && invoer.length < 4) { invoer += c.dataset.cijfer; tekenSlot(''); if (invoer.length === 4) setTimeout(codeKlaar, 120); }
+    });
+    document.addEventListener('keydown', e => {
+      if (slot.hidden) return;
+      if (/^[0-9]$/.test(e.key) && invoer.length < 4) { invoer += e.key; tekenSlot(''); if (invoer.length === 4) setTimeout(codeKlaar, 120); }
+      if (e.key === 'Backspace') { invoer = invoer.slice(0, -1); tekenSlot(''); }
+    });
+    document.getElementById('slot-onder').addEventListener('click', () => {
+      if (slotModus !== 'open') return;
+      if (confirm('Code vergeten? De code kan alleen worden gereset door ALLE gegevens in POP op dit apparaat te wissen. Doorgaan?') &&
+          confirm('Weet je het zeker? Dit kan niet ongedaan worden gemaakt.')) {
+        try { Object.keys(localStorage).filter(k => k.startsWith('pop-')).forEach(k => localStorage.removeItem(k)); } catch (e) {}
+        location.reload();
+      }
+    });
+    // Opnieuw vergrendelen als de app langer dan 1 minuut op de achtergrond was
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) verborgenSinds = Date.now();
+      else if (leesPin() && slot.hidden && verborgenSinds && Date.now() - verborgenSinds > 60000) toonSlot('open');
+    });
+    function tekenPinInstellingen() {
+      const aan = !!leesPin();
+      document.getElementById('pin-status').textContent = aan
+        ? 'Aan. POP vraagt om je code bij het openen en na 1 minuut op de achtergrond.'
+        : 'Uit. Stel een code van 4 cijfers in om POP af te schermen.';
+      document.getElementById('pin-acties').innerHTML = aan
+        ? '<button class="knop zacht klein" id="pin-wijzig">Code wijzigen</button><button class="knop rood klein" id="pin-uit">Code uitzetten</button>'
+        : '<button class="knop klein" id="pin-wijzig">Code instellen</button>';
+    }
+    document.getElementById('pin-acties').addEventListener('click', e => {
+      if (e.target.id === 'pin-wijzig') toonSlot('nieuw');
+      if (e.target.id === 'pin-uit' && confirm('Beveiligingscode uitzetten?')) {
+        try { localStorage.removeItem(PIN_SLEUTEL); } catch (err) {}
+        teken();
+      }
+    });
+
     // ---------- Licht / donker ----------
     const donkerSysteem = window.matchMedia('(prefers-color-scheme: dark)');
     const isDonker = () => document.documentElement.dataset.theme
@@ -1382,6 +1621,7 @@
       if (huidig === 'routine') tekenRoutine();
       if (huidig === 'bibliotheek') tekenBibliotheek();
       if (huidig === 'todo') tekenTodo();
+      if (huidig === 'settings') tekenPinInstellingen();
       if (huidig === 'reflectie') tekenReflectie();
     }
     // Nieuwe dag? Opnieuw tekenen wanneer je de app weer opent.
@@ -1390,6 +1630,11 @@
     let start = 'dashboard';
     try { start = sessionStorage.getItem('pop-view') || 'dashboard'; } catch (e) {}
     ga(titels[start] ? start : 'dashboard');
+    // Bij openen: code vragen, of (eenmalig) voorstellen er een in te stellen
+    try {
+      if (leesPin()) toonSlot('open');
+      else if (!localStorage.getItem('pop-pin-gevraagd')) { localStorage.setItem('pop-pin-gevraagd', '1'); toonSlot('nieuw'); }
+    } catch (e) {}
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

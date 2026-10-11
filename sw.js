@@ -1,5 +1,5 @@
 // Verhoog dit versienummer bij elke update, zodat je mobiel de nieuwe versie ophaalt.
-const CACHE = 'pop-v16';
+const CACHE = 'pop-v17';
 const BESTANDEN = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
