@@ -179,7 +179,7 @@
     nav .wrap { display: flex; width: 100%; max-width: 640px; }
     nav button {
       flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
-      padding: 6px 0; font-size: 11px; color: var(--muted); font-weight: 600;
+      padding: 6px 0; font-size: 10.5px; color: var(--muted); font-weight: 600; min-width: 0;
     }
     nav button .ni { font-size: 20px; line-height: 1.2; filter: grayscale(1); opacity: .6; }
     nav button.aan { color: var(--text); }
@@ -205,13 +205,21 @@
   <header>
     <div>
       <div class="datum" id="datum"></div>
-      <h1 id="titel">Overzicht</h1>
+      <h1 id="titel">Dashboard</h1>
     </div>
   </header>
 
   <main>
+    <!-- DASHBOARD -->
+    <section data-view="dashboard" class="actief">
+      <div class="leeg">
+        <strong>Nog niets hier</strong>
+        Dit dashboard vult zich zodra we onderdelen toevoegen.
+      </div>
+    </section>
+
     <!-- OVERZICHT -->
-    <section data-view="overzicht" class="actief">
+    <section data-view="overzicht">
       <button class="kaart ov-kaart" data-ga="afleren">
         <div class="kaart-kop"><div class="icoon i-bad">✕</div><h2>Slechte gewoontes afleren</h2><span class="pijl">›</span></div>
         <div id="ov-afleren"></div>
@@ -225,11 +233,15 @@
         <div id="ov-routine"></div>
       </button>
 
-      <div class="label">Back-up</div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section data-view="settings">
+      <div class="label" style="margin-top:12px">Back-up</div>
       <div class="kaart">
         <p class="sub">Je gegevens staan alleen op dit apparaat. Maak af en toe een back-up, zodat je niets kwijtraakt bij een nieuwe telefoon.</p>
         <div class="acties">
-          <button class="knop zacht klein" id="exporteer">Back-up opslaan</button>
+          <button class="knop zacht klein" id="exporteer">Back-up maken</button>
           <button class="knop zacht klein" id="importeer">Back-up terugzetten</button>
           <input type="file" id="bestand" accept="application/json,.json" hidden>
         </div>
@@ -276,10 +288,12 @@
 
   <nav>
     <div class="wrap">
-      <button data-ga="overzicht" class="aan"><span class="ni">🏠</span>Overzicht</button>
+      <button data-ga="dashboard" class="aan"><span class="ni">🏠</span>Dashboard</button>
+      <button data-ga="overzicht"><span class="ni">📋</span>Overzicht</button>
       <button data-ga="afleren"><span class="ni">🚫</span>Afleren</button>
       <button data-ga="aanleren"><span class="ni">🌱</span>Aanleren</button>
       <button data-ga="routine"><span class="ni">☀️</span>Routine</button>
+      <button data-ga="settings"><span class="ni">⚙️</span>Settings</button>
     </div>
   </nav>
 
@@ -357,8 +371,8 @@
     };
 
     // ---------- Navigatie ----------
-    const titels = { overzicht: 'Overzicht', afleren: 'Afleren', aanleren: 'Aanleren', routine: 'Routine' };
-    let huidig = 'overzicht';
+    const titels = { dashboard: 'Dashboard', overzicht: 'Overzicht', afleren: 'Afleren', aanleren: 'Aanleren', routine: 'Routine', settings: 'Settings' };
+    let huidig = 'dashboard';
     function ga(view) {
       huidig = view;
       document.querySelectorAll('section[data-view]').forEach(s => s.classList.toggle('actief', s.dataset.view === view));
@@ -600,9 +614,9 @@
     // Nieuwe dag? Opnieuw tekenen wanneer je de app weer opent.
     document.addEventListener('visibilitychange', () => { if (!document.hidden) teken(); });
 
-    let start = 'overzicht';
-    try { start = sessionStorage.getItem('pop-view') || 'overzicht'; } catch (e) {}
-    ga(titels[start] ? start : 'overzicht');
+    let start = 'dashboard';
+    try { start = sessionStorage.getItem('pop-view') || 'dashboard'; } catch (e) {}
+    ga(titels[start] ? start : 'dashboard');
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
