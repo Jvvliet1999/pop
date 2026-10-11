@@ -251,18 +251,27 @@
     /* Dashboard */
     .welkom {
       margin-top: 8px; border-radius: 22px; padding: 22px 20px 20px;
-      background: linear-gradient(145deg, #ffd9a0 0%, #ffb38a 55%, #f7949a 100%);
-      color: #3b2116; position: relative; overflow: hidden;
-      box-shadow: 0 10px 30px -14px rgba(214, 110, 60, .55);
+      /* zonlicht dat door de bladeren valt */
+      background:
+        radial-gradient(circle at 88% 8%, rgba(255, 236, 160, .85) 0, rgba(255, 236, 160, 0) 42%),
+        linear-gradient(150deg, #f1f9e4 0%, #cfe9bd 45%, #9fd09a 100%);
+      color: #1f3a28; position: relative; overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, .6);
+      box-shadow: 0 12px 30px -16px rgba(47, 110, 64, .55);
     }
     .welkom.avond {
-      background: linear-gradient(145deg, #3d3a78 0%, #6a4c93 55%, #c06c84 100%);
-      color: #fff4ec; box-shadow: 0 10px 30px -14px rgba(80, 60, 140, .6);
+      /* maanlicht boven een avondbos */
+      background:
+        radial-gradient(circle at 88% 8%, rgba(220, 235, 255, .30) 0, rgba(220, 235, 255, 0) 40%),
+        linear-gradient(150deg, #1d3b31 0%, #24503f 50%, #2f6650 100%);
+      color: #eef7ee; border-color: rgba(255, 255, 255, .08);
+      box-shadow: 0 12px 30px -16px rgba(10, 40, 25, .8);
     }
     .welkom::after {
-      content: ""; position: absolute; width: 180px; height: 180px; border-radius: 50%;
-      right: -50px; top: -60px; background: rgba(255, 255, 255, .22);
+      content: ""; position: absolute; width: 170px; height: 170px; border-radius: 50%;
+      right: -55px; top: -65px; background: rgba(255, 255, 255, .28);
     }
+    .welkom.avond::after { background: rgba(255, 255, 255, .07); }
     .welkom > * { position: relative; z-index: 1; }
     .welkom-emoji { font-size: 34px; line-height: 1; }
     .welkom-groet { font-size: 25px; font-weight: 750; letter-spacing: -.02em; margin-top: 10px; }
@@ -270,10 +279,10 @@
     .welkom-bron { font-size: 12.5px; font-weight: 600; margin-top: 6px; opacity: .75; }
     .klok {
       margin-top: 18px; padding: 14px 16px; border-radius: 16px;
-      background: rgba(255, 255, 255, .35); backdrop-filter: blur(6px);
+      background: rgba(255, 255, 255, .5); backdrop-filter: blur(6px);
       display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap;
     }
-    .welkom.avond .klok { background: rgba(255, 255, 255, .14); }
+    .welkom.avond .klok { background: rgba(255, 255, 255, .09); }
     .klok-tijd { font-size: 38px; font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
     .klok-plaats { font-size: 13px; font-weight: 600; opacity: .8; }
 
