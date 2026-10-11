@@ -169,6 +169,35 @@
     }
     .compleet { color: var(--good); font-weight: 600; font-size: 14px; margin-top: 10px; text-align: center; }
 
+    /* Dashboard */
+    .welkom {
+      margin-top: 8px; border-radius: 22px; padding: 22px 20px 20px;
+      background: linear-gradient(145deg, #ffd9a0 0%, #ffb38a 55%, #f7949a 100%);
+      color: #3b2116; position: relative; overflow: hidden;
+      box-shadow: 0 10px 30px -14px rgba(214, 110, 60, .55);
+    }
+    .welkom.avond {
+      background: linear-gradient(145deg, #3d3a78 0%, #6a4c93 55%, #c06c84 100%);
+      color: #fff4ec; box-shadow: 0 10px 30px -14px rgba(80, 60, 140, .6);
+    }
+    .welkom::after {
+      content: ""; position: absolute; width: 180px; height: 180px; border-radius: 50%;
+      right: -50px; top: -60px; background: rgba(255, 255, 255, .22);
+    }
+    .welkom > * { position: relative; z-index: 1; }
+    .welkom-emoji { font-size: 34px; line-height: 1; }
+    .welkom-groet { font-size: 25px; font-weight: 750; letter-spacing: -.02em; margin-top: 10px; }
+    .welkom-zin { font-size: 15px; line-height: 1.45; margin-top: 6px; opacity: .85; }
+    .klok {
+      margin-top: 18px; padding: 14px 16px; border-radius: 16px;
+      background: rgba(255, 255, 255, .35); backdrop-filter: blur(6px);
+      display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    }
+    .welkom.avond .klok { background: rgba(255, 255, 255, .14); }
+    .klok-tijd { font-size: 38px; font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+    .klok-tijd span { font-size: 20px; opacity: .6; margin-left: 2px; }
+    .klok-plaats { font-size: 13px; font-weight: 600; opacity: .8; }
+
     /* Navigatie */
     nav {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
@@ -212,10 +241,27 @@
   <main>
     <!-- DASHBOARD -->
     <section data-view="dashboard" class="actief">
-      <div class="leeg">
-        <strong>Nog niets hier</strong>
-        Dit dashboard vult zich zodra we onderdelen toevoegen.
+      <div class="welkom" id="welkom">
+        <div class="welkom-emoji" id="welkom-emoji">☀️</div>
+        <div class="welkom-groet" id="welkom-groet">Welkom</div>
+        <p class="welkom-zin" id="welkom-zin"></p>
+        <div class="klok">
+          <div class="klok-tijd" id="klok-tijd">--:--<span>:--</span></div>
+          <div class="klok-plaats">🌍 Amsterdam · <span id="klok-zone">CET</span></div>
+        </div>
       </div>
+
+      <div class="kaart">
+        <div class="kaart-kop">
+          <div class="icoon" id="dash-icoon"></div>
+          <h2 id="dash-kop"></h2>
+          <span class="sub" id="dash-telling"></span>
+        </div>
+        <div class="balk"><i id="dash-balk" style="width:0"></i></div>
+        <div id="dash-lijst" style="margin-top:6px"></div>
+        <div id="dash-compleet"></div>
+      </div>
+      <p class="sub" id="dash-reeks" style="text-align:center;margin-top:14px"></p>
     </section>
 
     <!-- OVERZICHT -->
@@ -480,11 +526,96 @@
       bewaar(); teken();
     });
 
+    // ---------- Amsterdam-tijd ----------
+    const tijdFmt = new Intl.DateTimeFormat('nl-NL', { timeZone: 'Europe/Amsterdam', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+    const zoneFmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Amsterdam', timeZoneName: 'short' });
+    function amsterdam() {
+      const p = Object.fromEntries(tijdFmt.formatToParts(new Date()).map(x => [x.type, x.value]));
+      const zone = (zoneFmt.formatToParts(new Date()).find(x => x.type === 'timeZoneName') || {}).value || 'CET';
+      return { u: +p.hour, m: +p.minute, s: +p.second, hh: p.hour, mm: p.minute, ss: p.second,
+               zone: zone === 'GMT+1' ? 'CET' : zone === 'GMT+2' ? 'CEST' : zone };
+    }
+    // 06:00 t/m 13:00 = ochtend, 13:01 t/m 05:59 = avond
+    function momentNu() {
+      const { u, m } = amsterdam(), min = u * 60 + m;
+      return min >= 360 && min <= 780 ? 'ochtend' : 'avond';
+    }
+
+    // Avondroutine na middernacht (00:00-05:59) telt nog voor de avond ervoor
+    const routineDag = m => (m === 'avond' && amsterdam().u < 6) ? plusDagen(vandaag(), -1) : vandaag();
+
+    // ---------- Dashboard ----------
+    const zinnen = {
+      ochtend: [
+        'Een nieuwe dag, een nieuwe kans. Begin klein en bouw rustig op.',
+        'Elke stap van je routine is een cadeautje aan jezelf.',
+        'Je hoeft niet perfect te zijn, alleen vandaag een beetje beter.',
+        'Fijn dat je er bent. Laten we er een goede dag van maken.',
+        'Rustig wakker worden mag. Eén vinkje tegelijk.'
+      ],
+      avond: [
+        'Goed gedaan vandaag. Tijd om rustig af te ronden.',
+        'Wat je vandaag ook gedaan hebt: je bent hier, en dat telt.',
+        'Een fijne avond begint met even voor jezelf zorgen.',
+        'Laat de dag los en geef jezelf een goede nachtrust.',
+        'Kleine gewoontes, grote verschillen. Mooi dat je doorzet.'
+      ]
+    };
+    function groet(u) {
+      if (u >= 6 && u < 12) return ['Goedemorgen', '☀️'];
+      if (u >= 12 && u < 18) return ['Goedemiddag', '🌤️'];
+      if (u >= 18 && u < 24) return ['Goedenavond', '🌙'];
+      return ['Goedenacht', '✨'];
+    }
+    function tekenKlok() {
+      const a = amsterdam();
+      document.getElementById('klok-tijd').innerHTML = `${a.hh}:${a.mm}<span>:${a.ss}</span>`;
+      document.getElementById('klok-zone').textContent = a.zone;
+    }
+    let dashMoment = null;
+    function tekenDashboard() {
+      const a = amsterdam(), m = momentNu(), t = routineDag(m);
+      dashMoment = m;
+      const [g, emoji] = groet(a.u);
+      const dagNr = Math.floor(Date.now() / 864e5);
+      document.getElementById('welkom').classList.toggle('avond', m === 'avond');
+      document.getElementById('welkom-emoji').textContent = emoji;
+      document.getElementById('welkom-groet').textContent = `${g}, Joshua!`;
+      document.getElementById('welkom-zin').textContent = zinnen[m][dagNr % zinnen[m].length];
+      tekenKlok();
+
+      const ic = document.getElementById('dash-icoon');
+      ic.className = 'icoon ' + (m === 'ochtend' ? 'i-sun' : 'i-moon');
+      ic.textContent = m === 'ochtend' ? '☀' : '☾';
+      document.getElementById('dash-kop').textContent = m === 'ochtend' ? 'Ochtendroutine' : 'Avondroutine';
+      const stappen = data.routine[m], gedaan = data.routineGedaan[t] || {}, c = routineTelling(m, t);
+      document.getElementById('dash-telling').textContent = c.totaal ? `${c.klaar}/${c.totaal}` : '';
+      document.getElementById('dash-balk').style.width = c.totaal ? `${Math.round(c.klaar / c.totaal * 100)}%` : '0';
+      document.getElementById('dash-lijst').innerHTML = stappen.length
+        ? stappen.map(s => `<button class="stap ${gedaan[s.id] ? 'aan' : ''}" data-stap="${s.id}"><span class="box">✓</span><span class="tekst">${esc(s.naam)}</span></button>`).join('')
+        : `<p class="sub" style="padding:14px 0">Nog geen stappen. <button class="tekstknop" data-ga="routine" style="padding:0;text-decoration:underline">Stel je ${m === 'ochtend' ? 'ochtend' : 'avond'}routine in</button></p>`;
+      document.getElementById('dash-compleet').innerHTML = routineCompleet(m, t) ? '<p class="compleet">✓ Routine compleet, top gedaan!</p>' : '';
+      const r = reeks(d => routineCompleet(m, d));
+      document.getElementById('dash-reeks').textContent = r ? `🔥 ${r} ${dagen(r)} op rij volledig` : '';
+    }
+    document.getElementById('dash-lijst').addEventListener('click', e => {
+      const s = e.target.closest('[data-stap]');
+      if (!s) return;
+      const t = routineDag(dashMoment), g = data.routineGedaan[t] = data.routineGedaan[t] || {};
+      if (g[s.dataset.stap]) delete g[s.dataset.stap]; else g[s.dataset.stap] = true;
+      bewaar(); teken();
+    });
+    setInterval(() => {
+      if (huidig !== 'dashboard' || document.hidden) return;
+      const a = amsterdam();
+      if (momentNu() !== dashMoment || a.s === 0) tekenDashboard(); else tekenKlok();
+    }, 1000);
+
     // ---------- Routine ----------
-    let moment = new Date().getHours() < 14 ? 'ochtend' : 'avond';
+    let moment = momentNu();
     let bewerkModus = false;
     function tekenRoutine() {
-      const t = vandaag();
+      const t = routineDag(moment);
       document.querySelectorAll('[data-moment]').forEach(b => b.classList.toggle('aan', b.dataset.moment === moment));
       document.getElementById('routine-kop').textContent = moment === 'ochtend' ? 'Ochtendroutine' : 'Avondroutine';
       const stappen = data.routine[moment];
@@ -510,7 +641,7 @@
     document.getElementById('routine-bewerk').addEventListener('click', () => { bewerkModus = !bewerkModus; teken(); });
     document.getElementById('routine-lijst').addEventListener('click', e => {
       const s = e.target.closest('[data-stap]'), w = e.target.closest('[data-weg]');
-      const t = vandaag();
+      const t = routineDag(moment);
       if (s) {
         const g = data.routineGedaan[t] = data.routineGedaan[t] || {};
         if (g[s.dataset.stap]) delete g[s.dataset.stap]; else g[s.dataset.stap] = true;
@@ -606,6 +737,7 @@
     function teken() {
       document.getElementById('datum').textContent =
         new Date().toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
+      if (huidig === 'dashboard') tekenDashboard();
       if (huidig === 'overzicht') tekenOverzicht();
       if (huidig === 'afleren') tekenAfleren();
       if (huidig === 'aanleren') tekenAanleren();
