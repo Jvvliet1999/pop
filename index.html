@@ -12,6 +12,10 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-192.png">
+  <script>
+    // Gekozen thema meteen toepassen (voorkomt flitsen)
+    try { const t = localStorage.getItem('pop-thema'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
   <style>
     :root {
       --bg: #f6f5f1;
@@ -31,7 +35,7 @@
       --moon-soft: #e6e9f6;
     }
     @media (prefers-color-scheme: dark) {
-      :root {
+      :root:not([data-theme="light"]) {
         --bg: #12151c;
         --surface: #1b2029;
         --text: #eceae4;
@@ -49,6 +53,23 @@
         --moon-soft: #232a42;
       }
     }
+    :root[data-theme="dark"] {
+        --bg: #12151c;
+        --surface: #1b2029;
+        --text: #eceae4;
+        --muted: #8d93a1;
+        --line: #2a303b;
+        --accent: #c9d3ea;
+        --on-accent: #12151c;
+        --good: #6cc184;
+        --good-soft: #1e3324;
+        --bad: #e2836f;
+        --bad-soft: #3a2420;
+        --sun: #e8aa4a;
+        --sun-soft: #3a2f1c;
+        --moon: #97a8e6;
+        --moon-soft: #232a42;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body { min-height: 100%; }
     body {
@@ -65,6 +86,11 @@
       padding: calc(env(safe-area-inset-top) + 20px) 20px 8px;
       max-width: 640px; margin: 0 auto;
       display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
+    }
+    .thema-knop {
+      width: 42px; height: 42px; border-radius: 50%; flex: none;
+      background: var(--surface); border: 1px solid var(--line);
+      display: grid; place-items: center; font-size: 19px; margin-bottom: 2px;
     }
     .datum { font-size: 13px; color: var(--muted); letter-spacing: .02em; }
     .datum::first-letter { text-transform: uppercase; }
@@ -187,7 +213,8 @@
     .welkom > * { position: relative; z-index: 1; }
     .welkom-emoji { font-size: 34px; line-height: 1; }
     .welkom-groet { font-size: 25px; font-weight: 750; letter-spacing: -.02em; margin-top: 10px; }
-    .welkom-zin { font-size: 15px; line-height: 1.45; margin-top: 6px; opacity: .85; }
+    .welkom-zin { font-size: 15px; line-height: 1.45; margin-top: 8px; font-style: italic; }
+    .welkom-bron { font-size: 12.5px; font-weight: 600; margin-top: 6px; opacity: .75; }
     .klok {
       margin-top: 18px; padding: 14px 16px; border-radius: 16px;
       background: rgba(255, 255, 255, .35); backdrop-filter: blur(6px);
@@ -195,7 +222,6 @@
     }
     .welkom.avond .klok { background: rgba(255, 255, 255, .14); }
     .klok-tijd { font-size: 38px; font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-    .klok-tijd span { font-size: 20px; opacity: .6; margin-left: 2px; }
     .klok-plaats { font-size: 13px; font-weight: 600; opacity: .8; }
 
     /* Navigatie */
@@ -236,6 +262,7 @@
       <div class="datum" id="datum"></div>
       <h1 id="titel">Dashboard</h1>
     </div>
+    <button class="thema-knop" id="thema-knop" aria-label="Wissel tussen licht en donker">🌙</button>
   </header>
 
   <main>
@@ -245,13 +272,14 @@
         <div class="welkom-emoji" id="welkom-emoji">☀️</div>
         <div class="welkom-groet" id="welkom-groet">Welkom</div>
         <p class="welkom-zin" id="welkom-zin"></p>
+        <p class="welkom-bron" id="welkom-bron"></p>
         <div class="klok">
-          <div class="klok-tijd" id="klok-tijd">--:--<span>:--</span></div>
+          <div class="klok-tijd" id="klok-tijd">--:--:--</div>
           <div class="klok-plaats">🌍 Amsterdam · <span id="klok-zone">CET</span></div>
         </div>
       </div>
 
-      <div class="kaart">
+      <div class="kaart" id="dash-routine">
         <div class="kaart-kop">
           <div class="icoon" id="dash-icoon"></div>
           <h2 id="dash-kop"></h2>
@@ -535,30 +563,46 @@
       return { u: +p.hour, m: +p.minute, s: +p.second, hh: p.hour, mm: p.minute, ss: p.second,
                zone: zone === 'GMT+1' ? 'CET' : zone === 'GMT+2' ? 'CEST' : zone };
     }
-    // 06:00 t/m 13:00 = ochtend, 13:01 t/m 05:59 = avond
+    // 06:00 t/m 13:00 = ochtend, 13:01 t/m 21:59 = middag (geen routine), 22:00 t/m 05:59 = avond
     function momentNu() {
       const { u, m } = amsterdam(), min = u * 60 + m;
-      return min >= 360 && min <= 780 ? 'ochtend' : 'avond';
+      if (min >= 360 && min <= 780) return 'ochtend';
+      if (min > 780 && min < 1320) return 'middag';
+      return 'avond';
     }
 
     // Avondroutine na middernacht (00:00-05:59) telt nog voor de avond ervoor
     const routineDag = m => (m === 'avond' && amsterdam().u < 6) ? plusDagen(vandaag(), -1) : vandaag();
 
     // ---------- Dashboard ----------
+    // Eigen Nederlandse vertalingen van klassieke teksten
     const zinnen = {
       ochtend: [
-        'Een nieuwe dag, een nieuwe kans. Begin klein en bouw rustig op.',
-        'Elke stap van je routine is een cadeautje aan jezelf.',
-        'Je hoeft niet perfect te zijn, alleen vandaag een beetje beter.',
-        'Fijn dat je er bent. Laten we er een goede dag van maken.',
-        'Rustig wakker worden mag. Eén vinkje tegelijk.'
+        ['Als je \'s ochtends moeite hebt met opstaan, zeg dan tegen jezelf: ik sta op om het werk van een mens te doen.', 'Marcus Aurelius, Meditaties 5.1'],
+        ['Verspil geen tijd meer aan discussiëren over wat een goed mens is. Wees er een.', 'Marcus Aurelius, Meditaties 10.16'],
+        ['Zeg eerst tegen jezelf wat je wilt zijn, en doe dan wat je moet doen.', 'Epictetus, Gesprekken 3.23'],
+        ['Terwijl we uitstellen, snelt het leven voorbij.', 'Seneca, Brieven aan Lucilius 1'],
+        ['Ken uzelf.', 'Inscriptie, tempel van Apollo in Delphi'],
+        ['Niets groots ontstaat plotseling, zelfs een druiventros of een vijg niet.', 'Epictetus, Gesprekken 1.15'],
+        ['Het universum is verandering; ons leven is wat onze gedachten ervan maken.', 'Marcus Aurelius, Meditaties 4.3']
+      ],
+      middag: [
+        ['Sommige dingen liggen in onze macht, andere niet.', 'Epictetus, Handboekje 1'],
+        ['Niet de dingen zelf verontrusten mensen, maar hun oordelen over die dingen.', 'Epictetus, Handboekje 5'],
+        ['We lijden vaker in onze verbeelding dan in de werkelijkheid.', 'Seneca, Brieven aan Lucilius 13'],
+        ['Het is niet dat we weinig tijd hebben, maar dat we er veel van verspillen.', 'Seneca, Over de kortheid van het leven 1'],
+        ['Elke gewoonte en elk vermogen wordt versterkt door de daden die erbij horen.', 'Epictetus, Gesprekken 2.18'],
+        ['Niets te veel.', 'Inscriptie, tempel van Apollo in Delphi'],
+        ['Odysseus liet zich aan de mast binden om het lied van de sirenen te weerstaan. Bind jezelf aan je voornemens.', 'Les uit de Odyssee van Homerus']
       ],
       avond: [
-        'Goed gedaan vandaag. Tijd om rustig af te ronden.',
-        'Wat je vandaag ook gedaan hebt: je bent hier, en dat telt.',
-        'Een fijne avond begint met even voor jezelf zorgen.',
-        'Laat de dag los en geef jezelf een goede nachtrust.',
-        'Kleine gewoontes, grote verschillen. Mooi dat je doorzet.'
+        ['Ik onderzoek mijn hele dag en ga na wat ik heb gedaan en gezegd.', 'Seneca, Over woede 3.36'],
+        ['Zoals je gedachten gewoonlijk zijn, zo wordt je geest; want de ziel wordt gekleurd door haar gedachten.', 'Marcus Aurelius, Meditaties 5.16'],
+        ['Kijk naar binnen. Daar is de bron van het goede, en die blijft opborrelen zolang je blijft graven.', 'Marcus Aurelius, Meditaties 7.59'],
+        ['De beste wraak is niet te worden zoals degene die je onrecht deed.', 'Marcus Aurelius, Meditaties 6.6'],
+        ['Wees als de rots waar de golven steeds tegenaan slaan: hij blijft staan, en het water rondom komt tot rust.', 'Marcus Aurelius, Meditaties 4.49'],
+        ['Toen Pandora de kruik had geopend en alle kwaad was ontsnapt, bleef er één ding achter: de hoop.', 'Mythe van Pandora, naar Hesiodus'],
+        ['Doe elke handeling alsof het de laatste van je leven is.', 'Marcus Aurelius, Meditaties 2.5']
       ]
     };
     function groet(u) {
@@ -569,7 +613,7 @@
     }
     function tekenKlok() {
       const a = amsterdam();
-      document.getElementById('klok-tijd').innerHTML = `${a.hh}:${a.mm}<span>:${a.ss}</span>`;
+      document.getElementById('klok-tijd').textContent = `${a.hh}:${a.mm}:${a.ss}`;
       document.getElementById('klok-zone').textContent = a.zone;
     }
     let dashMoment = null;
@@ -581,9 +625,15 @@
       document.getElementById('welkom').classList.toggle('avond', m === 'avond');
       document.getElementById('welkom-emoji').textContent = emoji;
       document.getElementById('welkom-groet').textContent = `${g}, Joshua!`;
-      document.getElementById('welkom-zin').textContent = zinnen[m][dagNr % zinnen[m].length];
+      const [zin, bron] = zinnen[m][dagNr % zinnen[m].length];
+      document.getElementById('welkom-zin').textContent = `“${zin}”`;
+      document.getElementById('welkom-bron').textContent = `— ${bron}`;
       tekenKlok();
 
+      const toonRoutine = m !== 'middag';
+      document.getElementById('dash-routine').style.display = toonRoutine ? '' : 'none';
+      document.getElementById('dash-reeks').style.display = toonRoutine ? '' : 'none';
+      if (!toonRoutine) return;
       const ic = document.getElementById('dash-icoon');
       ic.className = 'icoon ' + (m === 'ochtend' ? 'i-sun' : 'i-moon');
       ic.textContent = m === 'ochtend' ? '☀' : '☾';
@@ -612,7 +662,7 @@
     }, 1000);
 
     // ---------- Routine ----------
-    let moment = momentNu();
+    let moment = momentNu() === 'middag' ? 'avond' : momentNu();
     let bewerkModus = false;
     function tekenRoutine() {
       const t = routineDag(moment);
@@ -732,6 +782,24 @@
         alert('Back-up teruggezet.');
       } catch (err) { alert('Dit bestand is geen geldige POP-back-up.'); }
     });
+
+    // ---------- Licht / donker ----------
+    const donkerSysteem = window.matchMedia('(prefers-color-scheme: dark)');
+    const isDonker = () => document.documentElement.dataset.theme
+      ? document.documentElement.dataset.theme === 'dark' : donkerSysteem.matches;
+    function tekenThema() {
+      const d = isDonker();
+      document.getElementById('thema-knop').textContent = d ? '☀️' : '🌙';
+      document.querySelector('meta[name=theme-color]').content = d ? '#12151c' : '#f6f5f1';
+    }
+    document.getElementById('thema-knop').addEventListener('click', () => {
+      const nieuw = isDonker() ? 'light' : 'dark';
+      document.documentElement.dataset.theme = nieuw;
+      try { localStorage.setItem('pop-thema', nieuw); } catch (e) {}
+      tekenThema();
+    });
+    donkerSysteem.addEventListener('change', tekenThema);
+    tekenThema();
 
     // ---------- Tekenen ----------
     function teken() {
